@@ -60,14 +60,20 @@ function initTenderTab() {
 
   <!-- Tender Type Mix + Issuer Comparison -->
   <div class="grid-2 mb-6">
-    <!-- Tender Type Mix Donut -->
+    <!-- Tender Type Mix Donut — REAL DATA (FY26 confirmed tender notices) -->
     <div class="card">
       <div class="card-header">
         <div>
-          <div class="card-title">Tender Type Mix (FY YTD)</div>
-          <div class="card-subtitle">% share by technology type</div>
+          <div class="card-title">Tender Type Mix (${TYPE_MIX_META.fy})</div>
+          <div class="card-subtitle">
+            % share of MW tendered by technology · ${TYPE_MIX_META.period} ·
+            ${TYPE_MIX_META.totalMW.toLocaleString()} MW total · ${TYPE_MIX_META.recordCount} tenders tracked
+          </div>
         </div>
-        <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>
+        <span class="source-chip manual"
+              title="SECI: seci.co.in/tenders + results | SJVN: sjvn.nic.in | GUVNL: official result; JMK May 2025 RE Update">
+          <i class="fa-solid fa-file-arrow-down"></i> REAL · Official
+        </span>
       </div>
       <div class="card-body">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center">
@@ -75,17 +81,29 @@ function initTenderTab() {
             <canvas id="chartTenderMix"></canvas>
           </div>
           <div class="donut-legend">
-            ${d.tenderTypeMix.labels.map((l, i) => Components.legendRow(
-              ['#f59e0b','#3b82f6','#22c55e','#a855f7','#f97316','#14b8a6'][i],
-              l, d.tenderTypeMix.values[i] + '%'
+            ${TYPE_MIX_DATA.categories.map(c => Components.legendRow(
+              c.color,
+              c.label,
+              c.mw > 0 ? c.pct + '% (' + (c.mw/1000).toFixed(1) + ' GW)' : '0% — none in FY26'
             )).join('')}
           </div>
         </div>
         <div style="margin-top:16px;padding:12px;background:var(--bg-elevated);border-radius:8px;border:1px solid var(--border-subtle)">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Trend Signal</div>
-          <div style="font-size:12px;color:var(--text-primary)">Hybrid & storage-linked tenders rising as % of pipeline. Pure-play solar share contracting from 68% (FY22) to 44% (FY25 YTD).</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">FY26 Signal</div>
+          <div style="font-size:12px;color:var(--text-primary)">
+            Storage-linked tenders (BESS + Solar ${TYPE_MIX_DATA.categories.find(c=>c.label==='BESS + Solar').pct}% + FDRE ${TYPE_MIX_DATA.categories.find(c=>c.label==='FDRE').pct}%) dominate at ${Math.round(TYPE_MIX_DATA.categories.filter(c=>['BESS + Solar','FDRE'].includes(c.label)).reduce((s,c)=>s+c.pct,0))}% of FY26 MW.
+            Pure-play solar fell to ${TYPE_MIX_DATA.categories.find(c=>c.label==='Solar (Utility)').pct}%.
+            Hybrid tenders: 0 MW in FY26 — procurement shifted toward FDRE and BESS+Solar structures.
+          </div>
         </div>
-        ${Components.sourceFooter(src.label, 'tender')}
+        <div style="margin-top:8px;padding:6px 0;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · Official</span>
+          <span class="chart-source">
+            Sources: <a href="https://seci.co.in/tenders/results" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">SECI tenders/results</a>
+            · <a href="https://sjvn.nic.in/" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">SJVN</a>
+            · GUVNL · ${TYPE_MIX_META.period} · Tender publication date used for all classification
+          </span>
+        </div>
       </div>
     </div>
 
@@ -221,11 +239,13 @@ function initTenderTab() {
       { label:'Avg L1 Tariff', data: tt.tariff, color: '#f59e0b', fill: true }
     ], { yLabel: '₹/kWh' });
 
-    // Tender Mix Donut
+    // Tender Mix Donut — REAL DATA from TYPE_MIX_DATA (FY26)
+    // Filter out zero-MW categories so donut doesn't show an invisible Hybrid slice
+    const nonZeroCategories = TYPE_MIX_DATA.categories.filter(c => c.mw > 0);
     Charts.donut('chartTenderMix',
-      d.tenderTypeMix.labels,
-      d.tenderTypeMix.values,
-      ['#f59e0b','#3b82f6','#22c55e','#a855f7','#f97316','#14b8a6']
+      nonZeroCategories.map(c => c.label),
+      nonZeroCategories.map(c => c.pct),
+      nonZeroCategories.map(c => c.color)
     );
 
     // Issuer Comparison
