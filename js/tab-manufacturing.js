@@ -84,40 +84,86 @@ function initManufacturingTab() {
     ${Components.chartCard({ id:'chartImportTrend', title:'Import vs Domestic Supply Trend', subtitle:'Half-yearly GW equivalent — market share evolution', height:240, source: src.label, extraClass:'w-full' })}
   </div>
 
-  <!-- Manufacturer Ranking Table -->
+  <!-- Manufacturer Ranking Table — REAL DATA (ALMM + PLI + Public Disclosures) -->
   <div class="mb-6">
-    ${Components.tableCard({
-      title: 'Manufacturer Ranking — Capacity & Backward Integration',
-      subtitle: 'ALMM-registered manufacturers sorted by module capacity',
-      source: src.label,
-      body: `<table class="data-table">
-        <thead><tr>
-          <th>Rank</th>
-          <th>Manufacturer</th>
-          <th class="number">Module (GW)</th>
-          <th class="number">Cell (GW)</th>
-          <th class="number">Wafer (GW)</th>
-          <th class="number">Ingot (GW)</th>
-          <th>Integration Level</th>
-          <th>PLI</th>
-          <th>Listed</th>
-        </tr></thead>
-        <tbody>
-          ${d.manufacturers.map(m => `
-          <tr>
-            <td>${Components.rankBadge(m.rank)}</td>
-            <td class="primary">${m.name}</td>
-            <td class="number mono">${m.module.toFixed(1)}</td>
-            <td class="number mono">${m.cell > 0 ? m.cell.toFixed(1) : '—'}</td>
-            <td class="number mono">${m.wafer > 0 ? m.wafer.toFixed(1) : '—'}</td>
-            <td class="number mono">${m.ingot > 0 ? m.ingot.toFixed(1) : '—'}</td>
-            <td>${buildIntegrationTag(m.backward)}</td>
-            <td>${m.pli ? Components.tag('PLI', 'positive') : Components.tag('No', 'neutral')}</td>
-            <td>${m.listed ? Components.tag('Listed', 'info') : Components.tag('Private', 'neutral')}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`
-    })}
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Manufacturer Ranking — Capacity &amp; Backward Integration</div>
+          <div class="card-subtitle">
+            ALMM List-I module · ALMM List-II cell · PLI + corporate disclosures for wafer/ingot ·
+            Ranked by ALMM-enlisted module GW · ${MFG_META.cutoffDate}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="source-chip manual" title="${MFG_META.moduleSource} | ${MFG_META.cellSource}">
+            <i class="fa-solid fa-file-arrow-down"></i> REAL · ALMM/PLI
+          </span>
+        </div>
+      </div>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Rank</th>
+            <th>Manufacturer</th>
+            <th class="number">Module GW</th>
+            <th class="number">Cell GW</th>
+            <th class="number">Wafer GW</th>
+            <th class="number">Ingot GW</th>
+            <th>Integration</th>
+            <th>PLI</th>
+            <th>Listed</th>
+          </tr></thead>
+          <tbody>
+            ${MFG_ROWS.map(r => {
+              const intTag = getMfgIntegrationTag(r);
+              const modChip = getMfgConfidenceChip(r.moduleConf);
+              const cellChip = r.cellConf ? getMfgConfidenceChip(r.cellConf) : '';
+              return `<tr title="Module: ${r.moduleNote || ''}">
+                <td>${Components.rankBadge(r.rank)}</td>
+                <td>
+                  <div class="primary" style="font-weight:600">${r.name}</div>
+                  <div style="font-size:10px;color:var(--text-disabled);margin-top:2px">${r.ticker}</div>
+                </td>
+                <td class="number">
+                  <span class="mono">${r.moduleGW.toFixed(1)}</span>
+                  <div style="margin-top:2px">${modChip}</div>
+                </td>
+                <td class="number">
+                  ${r.cellGW !== null
+                    ? `<span class="mono">${r.cellGW.toFixed(2)}</span><div style="margin-top:2px">${cellChip}</div>`
+                    : `<span style="color:var(--text-disabled)">—</span>`}
+                </td>
+                <td class="number">
+                  ${r.waferGW !== null
+                    ? `<span class="mono">${r.waferGW.toFixed(1)}</span><div style="margin-top:2px">${getMfgConfidenceChip('stated')}</div>`
+                    : `<span style="color:var(--text-disabled)">—</span>`}
+                </td>
+                <td class="number">
+                  ${r.ingotGW !== null
+                    ? `<span class="mono">${r.ingotGW.toFixed(1)}</span><div style="margin-top:2px">${getMfgConfidenceChip('stated')}</div>`
+                    : `<span style="color:var(--text-disabled)">—</span>`}
+                </td>
+                <td><span class="tag tag-${intTag.type}">${intTag.label}</span></td>
+                <td>${r.pli ? Components.tag('PLI', 'positive') : Components.tag('—', 'neutral')}</td>
+                <td>${r.listed ? Components.tag('Listed', 'info') : Components.tag('Private', 'neutral')}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:10px 20px;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · ALMM/PLI</span>
+        <span class="chart-source">
+          Module: <a href="${MFG_META.sourceUrl}" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">MNRE ALMM</a> Rev XLVII (01 Mar 2026) ·
+          Cell: ALMM List-II Rev 6 (13 Apr 2026) ·
+          Wafer/Ingot: PLI parliament + Adani corporate disclosure ·
+          <span style="background:rgba(59,130,246,0.1);color:var(--accent-blue);padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700">ALMM</span> = MNRE List-I/II enlisted ·
+          <span style="background:rgba(245,158,11,0.1);color:var(--status-warning);padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700">STATED</span> = company/MNRE stated ·
+          <span style="background:rgba(168,85,247,0.1);color:var(--accent-purple);padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700">DERIVED</span> = aggregated units
+        </span>
+      </div>
+    </div>
   </div>
 
   <!-- Expansion Tracker -->
