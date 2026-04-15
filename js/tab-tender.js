@@ -107,8 +107,41 @@ function initTenderTab() {
       </div>
     </div>
 
-    <!-- Issuer Comparison -->
-    ${Components.chartCard({ id:'chartIssuerComp', title:'Issuer-Wise Tender Volume', subtitle:'Total MW tendered by issuing entity (FY YTD)', height:240, source: src.label })}
+    <!-- Issuer Comparison — REAL DATA from ISSUER_VOLUME_DATA -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Issuer-Wise Tender Volume (${ISSUER_VOLUME_META.fy})</div>
+          <div class="card-subtitle">
+            Total MW tendered by issuing entity ·
+            ${ISSUER_VOLUME_META.period} ·
+            ${ISSUER_VOLUME_META.totalMW.toLocaleString()} MW tracked
+          </div>
+        </div>
+        <span class="source-chip manual"
+              title="Derived from same 10 tender records as Type Mix chart. Same scope, period, date field.">
+          <i class="fa-solid fa-file-arrow-down"></i> REAL · Official
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="canvas-wrap" style="height:240px">
+          <canvas id="chartIssuerComp"></canvas>
+        </div>
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:7px;font-size:10px;color:var(--text-secondary);line-height:1.7">
+          <strong style="color:var(--accent-blue)">Coverage:</strong>
+          Issuers searched: SECI, NTPC/REL, NHPC, SJVN, GUVNL, RUMSL, MSEDCL, TANTRANSCO ·
+          Not found in FY26 scope (≥100 MW BOO/TBCB generation-capacity selection):
+          ${ISSUER_VOLUME_META.notFound}
+        </div>
+        <div style="margin-top:8px;padding:6px 0;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · Official</span>
+          <span class="chart-source">
+            Aggregated from SECI, GUVNL, SJVN tender notices (same records as Type Mix) ·
+            ${ISSUER_VOLUME_META.period} · tender publication date
+          </span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Cancelled / Reissued Tender Panel -->
@@ -248,12 +281,12 @@ function initTenderTab() {
       nonZeroCategories.map(c => c.color)
     );
 
-    // Issuer Comparison
-    const ic = d.issuerComparison;
+    // Issuer Comparison — REAL DATA from ISSUER_VOLUME_DATA
     Charts.horizontalBar('chartIssuerComp',
-      ic.labels, ic.mw,
-      ['#f59e0b','#3b82f6','#22c55e','#a855f7','#f97316','#14b8a6','#6366f1'],
-      { xLabel: 'MW', label: 'MW Tendered' }
+      ISSUER_VOLUME_DATA.labels,
+      ISSUER_VOLUME_DATA.mw,
+      ISSUER_VOLUME_DATA.colors,
+      { xLabel: 'MW', label: 'MW Tendered (FY26)' }
     );
   });
 }
