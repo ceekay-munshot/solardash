@@ -1,0 +1,212 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TAB-SPECIFIC STYLES & OVERRIDES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tab 1: Demand ── */
+.demand-map-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.india-state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+  gap: 4px;
+  padding: var(--space-5);
+}
+
+/* ── Tab 2: Manufacturing ── */
+.mfg-stack-bar {
+  display: flex; height: 40px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin: var(--space-3) 0;
+}
+.mfg-stack-segment {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.9);
+  transition: opacity var(--transition-fast);
+  min-width: 30px;
+}
+.mfg-stack-segment:hover { opacity: 0.85; }
+
+/* ── Tab 3: Tender ── */
+.tender-type-legend {
+  display: flex; flex-wrap: wrap; gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.tender-type-dot {
+  width: 10px; height: 10px;
+  border-radius: 2px; flex-shrink: 0;
+}
+
+/* ── Tab 4: Execution ── */
+.exec-kanban {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+.kanban-col-header {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--border-subtle);
+  margin-bottom: var(--space-3);
+}
+.delay-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 6px; border-radius: var(--radius-full);
+}
+.delay-land    { background: rgba(239,68,68,0.12);  color: var(--status-negative); }
+.delay-grid    { background: rgba(245,158,11,0.12); color: var(--status-warning); }
+.delay-finance { background: rgba(59,130,246,0.12); color: var(--accent-blue); }
+.delay-approval{ background: rgba(168,85,247,0.12); color: var(--accent-purple); }
+.delay-supply  { background: rgba(249,115,22,0.12); color: var(--accent-orange); }
+
+/* ── Tab 5: IPP ── */
+.ipp-company-header {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-5);
+}
+.company-logo-placeholder {
+  width: 44px; height: 44px;
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800;
+  color: #fff; flex-shrink: 0;
+}
+.company-info-name { font-size: 16px; font-weight: 800; color: var(--text-primary); }
+.company-info-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+/* ── Tab 6: Policy ── */
+.policy-impact-row {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-2);
+}
+.policy-area { font-size: 12px; font-weight: 600; color: var(--text-primary); flex: 1; }
+.policy-dir  { font-size: 12px; font-weight: 700; min-width: 80px; text-align: center; }
+.dir-positive { color: var(--status-positive); }
+.dir-negative { color: var(--status-negative); }
+.dir-neutral  { color: var(--text-secondary); }
+.policy-desc { font-size: 11px; color: var(--text-muted); flex: 2; }
+
+/* ── Tab 7: Grid/DISCOM ── */
+.risk-score-ring {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  flex-shrink: 0;
+}
+.risk-score-high   { border: 3px solid var(--status-negative);  color: var(--status-negative); background: rgba(239,68,68,0.08); }
+.risk-score-medium { border: 3px solid var(--status-warning);   color: var(--status-warning);  background: rgba(245,158,11,0.08); }
+.risk-score-low    { border: 3px solid var(--status-positive);  color: var(--status-positive); background: rgba(34,197,94,0.08); }
+
+/* ── Tab 8: Restricted ── */
+.not-included-panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+.not-included-item {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.not-included-item:last-child { border-bottom: none; }
+.not-included-icon {
+  width: 24px; height: 24px;
+  border-radius: var(--radius-sm);
+  background: rgba(239,68,68,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--status-negative); flex-shrink: 0; margin-top: 1px;
+}
+.not-included-reason { font-size: 12px; color: var(--text-secondary); }
+.not-included-title  { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+
+/* ── Comparison table highlight ── */
+.compare-best { color: var(--status-positive); font-weight: 700; }
+.compare-worst{ color: var(--status-negative); font-weight: 700; }
+
+/* ── Score Stars ── */
+.stars { color: var(--accent-solar); letter-spacing: 1px; }
+
+/* ── Deadline tracker ── */
+.deadline-row {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-2);
+  transition: all var(--transition-fast);
+}
+.deadline-row:hover { background: var(--bg-hover); }
+.deadline-date {
+  font-size: 11px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary); min-width: 80px;
+}
+.deadline-event { font-size: 12px; font-weight: 500; color: var(--text-primary); flex: 1; }
+.deadline-days  { font-size: 11px; font-weight: 600; }
+.deadline-overdue { color: var(--status-negative); }
+.deadline-soon    { color: var(--status-warning); }
+.deadline-ok      { color: var(--status-positive); }
+
+/* ── Sparkline inline ── */
+.sparkline-mini { width: 80px; height: 30px; display: inline-block; }
+
+/* ── Number Big ── */
+.stat-number {
+  font-size: 32px; font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  font-family: 'Inter', sans-serif;
+}
+.stat-unit {
+  font-size: 14px; font-weight: 500; color: var(--text-secondary); margin-left: 3px;
+}
+
+/* ── Unavailable overlay ── */
+.data-unavailable {
+  position: relative;
+}
+.unavailable-overlay {
+  position: absolute; inset: 0;
+  background: rgba(13,17,23,0.8);
+  border-radius: var(--radius-lg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: var(--space-2);
+  font-size: 12px; color: var(--text-muted);
+  backdrop-filter: blur(2px);
+  z-index: 10;
+}
+.unavailable-overlay i { font-size: 24px; color: var(--text-disabled); }
+
+/* ── Source status chip ── */
+.source-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-family: 'JetBrains Mono', monospace;
+}
+.source-chip.live     { background: rgba(34,197,94,0.12);  color: var(--status-positive); }
+.source-chip.mock     { background: rgba(245,158,11,0.12); color: var(--status-warning); }
+.source-chip.manual   { background: rgba(59,130,246,0.12); color: var(--accent-blue); }
+.source-chip.paid     { background: rgba(239,68,68,0.12);  color: var(--status-negative); }
+.source-chip.offline  { background: rgba(90,106,133,0.12); color: var(--text-muted); }

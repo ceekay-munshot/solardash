@@ -1,0 +1,239 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TAB 5 — IPP / Listed Player Monitor
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+let activeIPP = 'Adani Green';
+
+function initIPPTab() {
+  const el = document.getElementById('tab-ipp');
+  if (!el || el.dataset.initialized) return;
+  el.dataset.initialized = 'true';
+
+  renderIPPTab();
+}
+
+function renderIPPTab(company) {
+  company = company || activeIPP;
+  activeIPP = company;
+  const el = document.getElementById('tab-ipp');
+  const d = MOCK.ipp;
+  const src = DATA_SOURCES.ipp;
+  const kpi = d.kpis[company];
+  const fin = d.financials[company];
+  const color = d.companyColors[company] || '#f59e0b';
+  const announcements = d.announcements[company] || d.announcements['Adani Green'];
+  const codList = d.codTimeline[company] || [];
+  const mix = d.portfolioMix[company];
+
+  el.innerHTML = `
+  <!-- Company Selector -->
+  <div class="mb-5">
+    <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.07em">Select Company</div>
+    <div class="company-selector">
+      ${d.companies.map(c => `
+        <div class="company-pill ${c === company ? 'active' : ''}" onclick="renderIPPTab('${c}')"
+             style="${c === company ? `background:${d.companyColors[c]};border-color:${d.companyColors[c]}` : ''}">
+          ${c}
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- Company Header -->
+  <div class="ipp-company-header mb-5">
+    <div class="company-logo-placeholder" style="background:${color}">${company.charAt(0)}</div>
+    <div style="flex:1">
+      <div class="company-info-name">${company}</div>
+      <div class="company-info-meta">Listed Renewable Energy Developer · IPP Monitor</div>
+    </div>
+    <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK DATA</span>
+    <span class="source-chip manual"><i class="fa-solid fa-file-lines"></i> Filings Source</span>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="grid-4 mb-6">
+    ${Components.kpiCard({ label:'Operating Capacity', value: kpi.opCapacity, unit: 'MW', delta: '+12%', dir: 'up', context: 'FY YTD additions', icon:'fa-plug-circle-check', accentColor: color, iconBg: color.replace('#','rgba(').replace(')','') + ',0.12)' })}
+    ${Components.kpiCard({ label:'Under-Construction', value: kpi.ucCapacity, unit: 'MW', delta: '+8%', dir: 'up', context: 'active construction', icon:'fa-hard-hat', accentColor:'var(--accent-solar)' })}
+    ${Components.kpiCard({ label:'Signed PPA Pipeline', value: kpi.ppa, unit: 'MW', delta: '+18%', dir: 'up', context: 'contracted but UC/pipeline', icon:'fa-handshake', accentColor:'var(--accent-blue)', iconBg:'rgba(59,130,246,0.1)' })}
+    ${Components.kpiCard({ label:'Announced Capex', value: kpi.capex, unit: '', delta: 'FY25-28E', dir: 'flat', context: '3-year capex guidance', icon:'fa-indian-rupee-sign', accentColor:'var(--accent-green)', iconBg:'rgba(34,197,94,0.1)' })}
+  </div>
+
+  <!-- Portfolio Mix + Operating vs Pipeline -->
+  <div class="grid-2 mb-6">
+    <!-- Portfolio Mix -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Portfolio Technology Mix</div>
+          <div class="card-subtitle">% of total contracted capacity by type</div>
+        </div>
+        <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>
+      </div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center">
+          <div class="canvas-wrap" style="height:180px">
+            <canvas id="chartPortfolioMix"></canvas>
+          </div>
+          <div>
+            ${Object.entries(mix).map(([k, v], i) => Components.legendRow(
+              ['#f59e0b','#3b82f6','#22c55e','#a855f7'][i], k, v + '%'
+            )).join('')}
+            <div style="margin-top:12px;padding:10px;background:var(--bg-elevated);border-radius:8px">
+              <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px">Note</div>
+              <div style="font-size:11px;color:var(--text-secondary)">Hybrid/FDRE share rising as SECI pipeline evolves</div>
+            </div>
+          </div>
+        </div>
+        ${Components.sourceFooter('BSE Filings + Annual Reports', 'ipp')}
+      </div>
+    </div>
+
+    <!-- Op vs Pipeline Chart -->
+    ${Components.chartCard({ id:'chartOpVsPipeline', title:'Operating vs Under-Construction vs PPA Pipeline', subtitle:'MW — staged capacity view', height:260, source:'Company Disclosures' })}
+  </div>
+
+  <!-- COD Timeline + Announcements -->
+  <div class="grid-2 mb-6">
+    <!-- Upcoming COD -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Upcoming COD Timeline</div>
+          <div class="card-subtitle">${company} — projects expected to commission</div>
+        </div>
+        <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>
+      </div>
+      <div class="card-body">
+        ${codList.length ? codList.map(c =>
+          Components.codItem(c.date, c.project, `${c.mw} MW`)
+        ).join('') : `<div class="empty-state" style="padding:20px"><i class="fa-solid fa-calendar-xmark"></i><div class="empty-title">No near-term CODs</div></div>`}
+        <div style="margin-top:16px;padding:12px;background:var(--bg-elevated);border-radius:8px">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted)">Total Near-Term Pipeline</div>
+          <div style="font-size:20px;font-weight:800;color:var(--text-primary)">${codList.reduce((a,c)=>a+c.mw,0).toLocaleString()} MW</div>
+        </div>
+        ${Components.sourceFooter('MNRE + Company Reports', 'ipp')}
+      </div>
+    </div>
+
+    <!-- Announcements Feed -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Project Wins & Announcements</div>
+          <div class="card-subtitle">${company} · recent material events</div>
+        </div>
+        <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>
+      </div>
+      <div class="card-body">
+        ${announcements.map(a =>
+          Components.feedItem(a.date, a.title, a.detail)
+        ).join('')}
+        <div style="margin-top:12px;text-align:center">
+          <button class="btn btn-secondary btn-sm"><i class="fa-solid fa-rss"></i> Load more from BSE feed</button>
+        </div>
+        ${Components.sourceFooter('BSE / NSE Disclosures', 'ipp')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Financials + Company Comparison -->
+  <div class="grid-2 mb-6">
+    <!-- Capex / Leverage / Monetization -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Capex, Leverage & Yield Summary</div>
+          <div class="card-subtitle">${company} — FY24-25 estimates</div>
+        </div>
+        <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>
+      </div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          ${buildFinancialMetric('Net Debt', fin.netDebt, 'fa-chart-line')}
+          ${buildFinancialMetric('Net Leverage', fin.leverage, 'fa-scale-balanced')}
+          ${buildFinancialMetric('Debt/Equity', fin.debtEquity, 'fa-percent')}
+          ${buildFinancialMetric('Revenue / Unit', fin.yield, 'fa-coins')}
+          ${buildFinancialMetric('Revenue CAGR (3yr)', fin.revCGR, 'fa-arrow-trend-up')}
+          ${buildFinancialMetric('Capex Guidance', kpi.capex, 'fa-indian-rupee-sign')}
+        </div>
+        <div style="margin-top:16px;padding:12px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;font-size:11px;color:var(--text-secondary)">
+          <strong style="color:var(--accent-solar)">Disclosure Note:</strong> Figures are mock placeholders. Connect to BSE/SEBI filings, company annual reports, or Bloomberg for live financial data.
+        </div>
+        ${Components.sourceFooter('Annual Reports + Bloomberg (mock)', 'ipp')}
+      </div>
+    </div>
+
+    <!-- Company Comparison Table -->
+    ${buildCompanyComparisonTable(d)}
+  </div>
+  `;
+
+  requestAnimationFrame(() => {
+    // Portfolio Mix
+    Charts.donut('chartPortfolioMix',
+      Object.keys(mix), Object.values(mix),
+      ['#f59e0b','#3b82f6','#22c55e','#a855f7']
+    );
+
+    // Op vs Pipeline
+    Charts.bar('chartOpVsPipeline',
+      d.companies,
+      [
+        { label:'Operating', data: d.companies.map(c => parseInt(d.kpis[c].opCapacity.replace(/,/g,''))), color: '#22c55e' },
+        { label:'Under-Construction', data: d.companies.map(c => parseInt(d.kpis[c].ucCapacity.replace(/,/g,''))), color: '#f59e0b' },
+      ],
+      { yLabel: 'MW' }
+    );
+  });
+}
+
+function buildFinancialMetric(label, value, icon) {
+  return `
+  <div style="background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:10px;padding:14px">
+    <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">
+      <i class="fa-solid ${icon}" style="margin-right:4px"></i>${label}
+    </div>
+    <div style="font-size:16px;font-weight:800;color:var(--text-primary)">${value}</div>
+  </div>`;
+}
+
+function buildCompanyComparisonTable(d) {
+  return `
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Company Comparison Table</div>
+        <div class="card-subtitle">All listed / major IPPs — side-by-side</div>
+      </div>
+      <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>
+    </div>
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>Company</th>
+          <th class="number">Op. (MW)</th>
+          <th class="number">UC (MW)</th>
+          <th class="number">PPA (MW)</th>
+          <th>Net Debt</th>
+          <th>Leverage</th>
+          <th>Rev CAGR</th>
+        </tr></thead>
+        <tbody>
+          ${d.companies.map(c => {
+            const kpi = d.kpis[c];
+            const fin = d.financials[c];
+            const color = d.companyColors[c];
+            return `<tr>
+              <td><span style="color:${color};font-weight:700">${c}</span></td>
+              <td class="number mono">${kpi.opCapacity}</td>
+              <td class="number mono">${kpi.ucCapacity}</td>
+              <td class="number mono">${kpi.ppa}</td>
+              <td class="mono">${fin.netDebt}</td>
+              <td class="mono" style="color:${parseFloat(fin.leverage) > 6 ? 'var(--status-negative)' : parseFloat(fin.leverage) > 4 ? 'var(--status-warning)' : 'var(--status-positive)'}">${fin.leverage}</td>
+              <td class="mono" style="color:var(--status-positive)">${fin.revCGR}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}

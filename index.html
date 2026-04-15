@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SolarIQ India — Investor Intelligence Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/tabs.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  SIDEBAR                                                           -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon"><i class="fa-solid fa-solar-panel"></i></div>
+    <div class="brand-text">
+      <span class="brand-name">SolarIQ</span>
+      <span class="brand-sub">India · Investor Edition</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-group-label">Market Intelligence</div>
+    <a class="nav-item active" data-tab="demand" href="#">
+      <span class="nav-icon"><i class="fa-solid fa-bolt"></i></span>
+      <span class="nav-label">Sector Demand & Power Pulse</span>
+      <span class="nav-badge live">LIVE</span>
+    </a>
+    <a class="nav-item" data-tab="manufacturing" href="#">
+      <span class="nav-icon"><i class="fa-solid fa-industry"></i></span>
+      <span class="nav-label">Manufacturing & Supply Chain</span>
+    </a>
+    <a class="nav-item" data-tab="tender" href="#">
+      <span class="nav-icon"><i class="fa-solid fa-file-contract"></i></span>
+      <span class="nav-label">Tender Flow & Tariff Discovery</span>
+    </a>
+
+    <div class="nav-group-label">Execution & Projects</div>
+    <a class="nav-item" data-tab="execution" href="#">
+      <span class="nav-icon"><i class="fa-solid fa-hard-hat"></i></span>
+      <span class="nav-label">Project Execution & COD Tracker</span>
+    </a>
+    <a class="nav-item" data-tab="ipp" href="#">
+      <span class="nav-icon"><i class="fa-solid fa-building-columns"></i></span>
+      <span class="nav-label">IPP / Listed Player Monitor</span>
+    </a>
+
+    <div class="nav-group-label">Risk & Regulation</div>
+    <a class="nav-item" data-tab="policy" href="#">
+      <span class="nav-icon"><i class="fa-solid fa-scale-balanced"></i></span>
+      <span class="nav-label">Policy & Regulation Monitor</span>
+    </a>
+    <a class="nav-item" data-tab="grid" href="#">
+      <span class="nav-icon"><i class="fa-solid fa-tower-broadcast"></i></span>
+      <span class="nav-label">Grid, DISCOM & Execution Risk</span>
+    </a>
+
+    <div class="nav-group-label">Data Access</div>
+    <a class="nav-item restricted-tab" data-tab="restricted" href="#">
+      <span class="nav-icon"><i class="fa-solid fa-lock"></i></span>
+      <span class="nav-label">Paid & Restricted Data Sources</span>
+      <span class="nav-badge premium">PRO</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="data-freshness">
+      <i class="fa-solid fa-circle-dot pulse-dot"></i>
+      <span>Mock Data Mode</span>
+    </div>
+    <div class="sidebar-meta">v2.1.0 · Build 2025-Q2</div>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  MAIN WRAPPER                                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="main-wrapper">
+
+  <!-- TOP BAR -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-title" id="topbarTitle">Sector Demand &amp; Power Market Pulse</div>
+      <span class="topbar-subtitle" id="topbarSubtitle">India · National View</span>
+    </div>
+    <div class="topbar-controls">
+      <div class="control-group">
+        <label class="control-label">Period</label>
+        <select class="ctrl-select" id="dateRange">
+          <option>FY 2024–25 YTD</option>
+          <option>FY 2023–24</option>
+          <option>Last 12 Months</option>
+          <option>Last 24 Months</option>
+          <option>FY 2022–23</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label class="control-label">State</label>
+        <select class="ctrl-select" id="stateFilter">
+          <option>All States</option>
+          <option>Rajasthan</option>
+          <option>Gujarat</option>
+          <option>Tamil Nadu</option>
+          <option>Karnataka</option>
+          <option>Andhra Pradesh</option>
+          <option>Madhya Pradesh</option>
+          <option>Maharashtra</option>
+          <option>Telangana</option>
+          <option>Uttar Pradesh</option>
+        </select>
+      </div>
+      <div class="control-group" id="companyFilterGroup">
+        <label class="control-label">Developer</label>
+        <select class="ctrl-select" id="companyFilter">
+          <option>All Developers</option>
+          <option>Adani Green</option>
+          <option>ReNew Power</option>
+          <option>Greenko</option>
+          <option>NTPC Renewable</option>
+          <option>Torrent Power</option>
+          <option>JSW Energy</option>
+          <option>Acme Solar</option>
+        </select>
+      </div>
+      <button class="btn-refresh" id="refreshBtn">
+        <i class="fa-solid fa-rotate-right"></i> Refresh
+      </button>
+      <div class="mock-badge"><i class="fa-solid fa-flask"></i> MOCK DATA</div>
+    </div>
+  </header>
+
+  <!-- STATUS BANNER -->
+  <div class="status-banner" id="statusBanner">
+    <i class="fa-solid fa-circle-info"></i>
+    <strong>Mock Data Mode Active.</strong> All figures are illustrative placeholders. Connect live data sources tab-by-tab via the data integration panel. Last simulated snapshot: <strong>14 Apr 2025, 18:30 IST</strong>.
+    <button class="banner-dismiss" onclick="document.getElementById('statusBanner').style.display='none'">×</button>
+  </div>
+
+  <!-- ─── TAB CONTENT AREA ─── -->
+  <main class="content-area" id="contentArea">
+
+    <!-- TAB 1: DEMAND -->
+    <div class="tab-panel active" id="tab-demand"></div>
+
+    <!-- TAB 2: MANUFACTURING -->
+    <div class="tab-panel" id="tab-manufacturing"></div>
+
+    <!-- TAB 3: TENDER -->
+    <div class="tab-panel" id="tab-tender"></div>
+
+    <!-- TAB 4: EXECUTION -->
+    <div class="tab-panel" id="tab-execution"></div>
+
+    <!-- TAB 5: IPP -->
+    <div class="tab-panel" id="tab-ipp"></div>
+
+    <!-- TAB 6: POLICY -->
+    <div class="tab-panel" id="tab-policy"></div>
+
+    <!-- TAB 7: GRID/DISCOM -->
+    <div class="tab-panel" id="tab-grid"></div>
+
+    <!-- TAB 8: RESTRICTED -->
+    <div class="tab-panel" id="tab-restricted"></div>
+
+  </main>
+</div>
+
+<!-- Scripts -->
+<script src="js/mock-data.js"></script>
+<script src="js/components.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/tab-demand.js"></script>
+<script src="js/tab-manufacturing.js"></script>
+<script src="js/tab-tender.js"></script>
+<script src="js/tab-execution.js"></script>
+<script src="js/tab-ipp.js"></script>
+<script src="js/tab-policy.js"></script>
+<script src="js/tab-grid.js"></script>
+<script src="js/tab-restricted.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
