@@ -21,7 +21,40 @@ function initTenderTab() {
 
   <!-- Tender & Award Trends -->
   <div class="grid-2 mb-6">
-    ${Components.chartCard({ id:'chartTenderFlow', title:'Tender Announcement vs Award Flow', subtitle:'Quarterly MW — tendered and awarded', height:280, source: src.label })}
+    <!-- Tender Flow Chart — REAL DATA -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Tender Announcement vs Award Flow</div>
+          <div class="card-subtitle">
+            Quarterly MW by issue date (Tendered) and result/LoA date (Awarded) ·
+            ${TENDER_FLOW_META.scope.split(' from ')[0]}
+          </div>
+        </div>
+        <span class="source-chip manual" title="SECI: seci.co.in/tenders + results | SJVN: sjvn.nic.in tender page | GUVNL: official result | JMK monthly RE update (citing official results)">
+          <i class="fa-solid fa-file-arrow-down"></i> REAL · Official
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="canvas-wrap" style="height:240px"><canvas id="chartTenderFlow"></canvas></div>
+        <div style="margin-top:10px;padding:10px 12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:7px;font-size:10px;color:var(--text-secondary);line-height:1.7">
+          <strong style="color:var(--accent-blue)">Methodology:</strong>
+          MW Tendered = tender publication date quarter ·
+          MW Awarded = result/LoA announcement date quarter ·
+          Tenders with no confirmed result excluded from Awarded ·
+          ${TENDER_FLOW_META.exclusions} excluded ·
+          Data cutoff: ${TENDER_FLOW_META.cutoffDate}
+        </div>
+        <div style="margin-top:8px;padding:6px 0;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · Official</span>
+          <span class="chart-source">
+            SECI: <a href="https://seci.co.in/tenders/results" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">seci.co.in/tenders/results</a>
+            · SJVN: <a href="https://sjvn.nic.in/tender-detail/8545/97" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">sjvn.nic.in</a>
+            · GUVNL · RUMSL · JMK monthly RE updates (citing official results)
+          </span>
+        </div>
+      </div>
+    </div>
     ${Components.chartCard({ id:'chartTariffTrend', title:'Tariff Discovery Trend', subtitle:'Quarterly average L1 discovered tariff (₹/kWh)', height:280, source: src.label })}
   </div>
 
@@ -176,11 +209,10 @@ function initTenderTab() {
   `;
 
   requestAnimationFrame(() => {
-    // Tender Flow
-    const tf = d.tendersOverTime;
-    Charts.bar('chartTenderFlow', tf.labels, [
-      { label:'MW Tendered', data: tf.tendered, color: '#3b82f6' },
-      { label:'MW Awarded',  data: tf.awarded,  color: '#22c55e' },
+    // Tender Flow — REAL DATA from TENDER_FLOW_DATA
+    Charts.bar('chartTenderFlow', TENDER_FLOW_DATA.labels, [
+      { label: 'MW Tendered (issue date)', data: TENDER_FLOW_DATA.tendered, color: '#3b82f6' },
+      { label: 'MW Awarded (result date)', data: TENDER_FLOW_DATA.awarded,  color: '#22c55e' },
     ], { yLabel: 'MW' });
 
     // Tariff Trend
