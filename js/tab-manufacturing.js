@@ -166,29 +166,74 @@ function initManufacturingTab() {
     </div>
   </div>
 
-  <!-- Expansion Tracker -->
+  <!-- Expansion Tracker — REAL DATA (BSE/NSE Reg-30, Official Press Releases, AGM) -->
   <div class="mb-6">
     <div class="card">
       <div class="card-header">
         <div>
           <div class="card-title">Announced Capacity Expansion Tracker</div>
-          <div class="card-subtitle">Planned additions — subject to execution risk</div>
+          <div class="card-subtitle">
+            Public disclosures only — BSE/NSE Reg-30 filings, official press releases, and AGM statements ·
+            Status reflects only explicit company disclosure, not inference
+          </div>
         </div>
-        <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="source-chip manual" title="BSE/NSE Reg-30 filings + official company press releases + AGM statements">
+            <i class="fa-solid fa-file-arrow-down"></i> REAL · Filings/PR
+          </span>
+        </div>
       </div>
       <div class="card-body">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
-          ${d.expansions.map(e => `
-          <div style="background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:10px;padding:14px">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-size:13px;font-weight:700;color:var(--text-primary)">${e.company}</div>
-              ${buildExpansionStatusTag(e.status)}
-            </div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px"><strong>${e.capacity}</strong> ${e.type} capacity</div>
-            <div style="font-size:11px;color:var(--text-muted)">Target: ${e.target}</div>
-          </div>`).join('')}
+          ${EXPANSIONS.map(e => {
+            const cfg = getExpansionStatusConfig(e.status);
+            const borderColor = {
+              positive: 'rgba(34,197,94,0.25)',
+              info:     'rgba(59,130,246,0.2)',
+              warning:  'rgba(245,158,11,0.2)',
+              negative: 'rgba(239,68,68,0.2)',
+              neutral:  'var(--border-subtle)',
+            }[cfg.type] || 'var(--border-subtle)';
+            return `
+            <div style="background:var(--bg-elevated);border:1px solid ${borderColor};border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:0">
+              <!-- Header row -->
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px">
+                <div style="font-size:13px;font-weight:700;color:var(--text-primary);line-height:1.3">${e.company}</div>
+                <span class="tag tag-${cfg.type}" style="flex-shrink:0;white-space:nowrap">
+                  <i class="fa-solid ${cfg.icon}" style="font-size:9px"></i> ${cfg.label}
+                </span>
+              </div>
+              <!-- Capacity + type -->
+              <div style="font-size:12px;color:var(--text-primary);font-weight:600;margin-bottom:3px">${e.capacity}</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px">${e.type} · ${e.location}</div>
+              <!-- Timeline -->
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">
+                <i class="fa-regular fa-calendar" style="font-size:9px;margin-right:3px"></i>${e.targetDate}
+              </div>
+              <!-- Source footer -->
+              <div style="border-top:1px solid var(--border-subtle);padding-top:8px;margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap">
+                <span style="font-size:10px;color:var(--text-disabled);font-family:'JetBrains Mono',monospace">${e.sourceDate}</span>
+                <a href="${e.sourceUrl}" target="_blank" rel="noopener"
+                   style="font-size:10px;color:var(--accent-blue);text-decoration:none;display:inline-flex;align-items:center;gap:3px;flex-shrink:0"
+                   title="${e.sourceName}">
+                  <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:8px"></i> Source
+                </a>
+              </div>
+            </div>`;
+          }).join('')}
         </div>
-        ${Components.sourceFooter(src.label, 'manufacturing')}
+        <!-- Notes panel -->
+        <div style="margin-top:14px;padding:12px 14px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:8px;font-size:11px;color:var(--text-secondary);line-height:1.7">
+          <strong style="color:var(--accent-blue)">Disclosure standards —</strong>
+          <span class="tag tag-positive" style="font-size:9px;margin:0 3px"><i class="fa-solid fa-circle-check" style="font-size:8px"></i> Commissioned</span> = company confirmed commissioning in exchange notice or press release ·
+          <span class="tag tag-info" style="font-size:9px;margin:0 3px"><i class="fa-solid fa-hard-hat" style="font-size:8px"></i> Under Execution</span> = physical work confirmed (groundbreaking, first production, civil works) ·
+          <span class="tag tag-neutral" style="font-size:9px;margin:0 3px"><i class="fa-solid fa-calendar-check" style="font-size:8px"></i> Planned</span> = board approval received; work not yet confirmed as physically underway ·
+          Timelines are company-stated targets, not verified actuals.
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;margin-top:8px;border-top:1px solid var(--border-subtle);flex-wrap:wrap">
+          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · Filings/PR</span>
+          <span class="chart-source">Sources: BSE/NSE Regulation 30 (LODR) filings · Official company press releases · AGM shareholder statements · IPO DRHP filings · Data as of ${EXP_META.cutoffDate}</span>
+        </div>
       </div>
     </div>
   </div>
