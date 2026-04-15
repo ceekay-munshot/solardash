@@ -21,14 +21,20 @@ function initManufacturingTab() {
 
   <!-- Capacity Mix + Import Trend -->
   <div class="grid-2 mb-6">
-    <!-- Capacity Split Donut -->
+    <!-- Capacity Split Donut — REAL DATA (ALMM List-I/II + PLI Parliament) -->
     <div class="card">
       <div class="card-header">
         <div>
           <div class="card-title">Domestic Capacity Stack</div>
-          <div class="card-subtitle">Module / Cell / Wafer / Ingot breakdown (GW)</div>
+          <div class="card-subtitle">
+            ALMM-enlisted + PLI-declared · Module: ${ALMM_META.moduleAsOf} · Cell: ${ALMM_META.cellAsOf}
+          </div>
         </div>
-        <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="source-chip manual" title="ALMM List-I (01 Mar 2026) + List-II (13 Feb 2026) + PLI Parliament statement (30 Jun 2025)">
+            <i class="fa-solid fa-file-arrow-down"></i> REAL · MNRE/PLI
+          </span>
+        </div>
       </div>
       <div class="card-body">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center">
@@ -36,17 +42,36 @@ function initManufacturingTab() {
             <canvas id="chartCapMix"></canvas>
           </div>
           <div class="donut-legend">
-            ${Components.legendRow('#f59e0b', 'Module Manufacturing', '62.4 GW')}
-            ${Components.legendRow('#3b82f6', 'Cell Manufacturing', '24.8 GW')}
-            ${Components.legendRow('#22c55e', 'Wafer Manufacturing', '9.2 GW')}
-            ${Components.legendRow('#a855f7', 'Ingot Manufacturing', '6.0 GW')}
+            ${Components.legendRow('#f59e0b', 'Module (ALMM List-I)', ALMM_CAPACITY.moduleGW + ' GW')}
+            ${Components.legendRow('#3b82f6', 'Cell (ALMM List-II)', '≥' + ALMM_CAPACITY.cellGW + ' GW')}
+            ${Components.legendRow('#22c55e', 'Wafer (PLI-declared)', ALMM_CAPACITY.waferGW + ' GW')}
+            ${Components.legendRow('#a855f7', 'Ingot (PLI-declared)', ALMM_CAPACITY.ingotGW + ' GW')}
           </div>
         </div>
+        <!-- Source notes for wafer/ingot -->
+        <div style="margin-top:10px;padding:10px 12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:8px;font-size:10px;color:var(--text-muted);line-height:1.6">
+          <strong style="color:var(--accent-blue)">Data notes —</strong>
+          Module: ALMM List-I Rev.XLVII enlisted capacity (gov't-approved manufacturers only; total market ~210 GW). ·
+          Cell: ALMM List-II Rev.5 aggregate; Rev.6 (Apr 2026) adds ≥Reliance 1.24 GW pending MNRE summary. ·
+          Wafer/Ingot: PLI-installed capacity per parliamentary statement (MoS Naik, Aug 2025) as of 30 Jun 2025.
+          ALMM List-III for wafers not yet published (effective Jun 2028, threshold: ≥15 GW operational).
+        </div>
         <div style="margin-top:16px">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Backward Integration Gap</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Backward Integration Coverage</div>
           ${buildIntegrationBars()}
         </div>
-        ${Components.sourceFooter(src.label, 'manufacturing')}
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;margin-top:8px;border-top:1px solid var(--border-subtle)">
+          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · MNRE/PLI</span>
+          <span class="chart-source">
+            Sources:
+            <a href="${ALMM_META.moduleSourcePage}" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">MNRE ALMM</a>
+            ·
+            <a href="${ALMM_META.modulePdfUrl}" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">Module PDF (${ALMM_META.moduleAsOf})</a>
+            ·
+            <a href="${ALMM_META.cellPdfUrl}" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">Cell PDF (${ALMM_META.cellAsOf})</a>
+            · Parliament Q&A Aug 2025 (wafer/ingot)
+          </span>
+        </div>
       </div>
     </div>
 
@@ -124,11 +149,11 @@ function initManufacturingTab() {
   `;
 
   requestAnimationFrame(() => {
-    // Capacity Mix Donut
+    // Capacity Mix Donut — REAL DATA (ALMM + PLI)
     Charts.donut('chartCapMix',
-      ['Module','Cell','Wafer','Ingot'],
-      [d.capacityMix.module, d.capacityMix.cell, d.capacityMix.wafer, d.capacityMix.ingot],
-      ['#f59e0b','#3b82f6','#22c55e','#a855f7']
+      ALMM_DONUT.labels,
+      ALMM_DONUT.values,
+      ALMM_DONUT.colors
     );
 
     // Import vs Domestic
@@ -146,19 +171,46 @@ function initManufacturingTab() {
   });
 }
 
+/* ── buildIntegrationBars — REAL DATA (ALMM_INTEGRATION) ───────────────────
+   Backward integration coverage ratios derived from ALMM List-I, List-II,
+   and PLI Parliamentary statement. See real-data-almm.js for full sourcing.
+   ─────────────────────────────────────────────────────────────────────────── */
 function buildIntegrationBars() {
   const items = [
-    { label:'Module → Cell', pct: Math.round((24.8/62.4)*100), color:'#3b82f6' },
-    { label:'Cell → Wafer',  pct: Math.round((9.2/24.8)*100),  color:'#22c55e' },
-    { label:'Wafer → Ingot', pct: Math.round((6.0/9.2)*100),   color:'#a855f7' },
+    {
+      label:  'Module → Cell  (ALMM List-II / List-I)',
+      pct:    ALMM_INTEGRATION.moduleToCellPct,
+      color:  '#3b82f6',
+      note:   `${ALMM_CAPACITY.cellGW} GW cell vs ${ALMM_CAPACITY.moduleGW} GW module · ${ALMM_INTEGRATION.moduleToCellGap}% gap (imports / non-ALMM)`,
+      warn:   true,  // significant gap
+    },
+    {
+      label:  'Cell → Wafer  (PLI-declared / ALMM List-II)',
+      pct:    ALMM_INTEGRATION.cellToWaferPct,
+      color:  '#22c55e',
+      note:   `${ALMM_CAPACITY.waferGW} GW wafer vs ${ALMM_CAPACITY.cellGW} GW cell · ${ALMM_INTEGRATION.cellToWaferGap}% reliant on imported wafers`,
+      warn:   true,  // severe gap
+    },
+    {
+      label:  'Wafer → Ingot  (PLI-structure: ingot = wafer)',
+      pct:    ALMM_INTEGRATION.waferToIngotPct,
+      color:  '#a855f7',
+      note:   'ALMM List-III mandates ingot capacity ≡ wafer capacity — effectively 1:1 for PLI manufacturers',
+      warn:   false,
+    },
   ];
-  return items.map(i => `
-  <div style="margin-bottom:8px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-      <span style="font-size:11px;color:var(--text-secondary)">${i.label}</span>
-      <span style="font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--text-primary)">${i.pct}%</span>
+
+  return items.map(item => `
+  <div style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="font-size:11px;color:var(--text-secondary)">${item.label}</span>
+      <span style="font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;
+            color:${item.warn && item.pct < 20 ? 'var(--status-negative)' : item.pct === 100 ? 'var(--status-positive)' : 'var(--text-primary)'}">
+        ${item.pct}%
+      </span>
     </div>
-    ${Components.progressBar(i.pct, i.color)}
+    ${Components.progressBar(Math.max(item.pct, 1), item.color)}
+    <div style="font-size:10px;color:var(--text-disabled);margin-top:3px;line-height:1.4">${item.note}</div>
   </div>`).join('');
 }
 
