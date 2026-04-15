@@ -88,38 +88,90 @@ function initTenderTab() {
     </div>
   </div>
 
-  <!-- Tender Table -->
+  <!-- Tender Table — REAL DATA (SECI official tender pages + GUVNL official results) -->
   <div class="mb-6">
-    ${Components.tableCard({
-      title: 'Live Tender Register',
-      subtitle: 'Active, recent, and upcoming tenders — all figures illustrative',
-      source: src.label,
-      body: `<table class="data-table">
-        <thead><tr>
-          <th>Tender ID</th>
-          <th>Issuer</th>
-          <th>Type</th>
-          <th class="number">Size (MW)</th>
-          <th>Date</th>
-          <th class="number">Tariff (₹/kWh)</th>
-          <th class="number">Subscription</th>
-          <th>Status</th>
-        </tr></thead>
-        <tbody>
-          ${d.tenderTable.map(t => `
-          <tr>
-            <td class="mono" style="color:var(--accent-blue)">${t.id}</td>
-            <td class="primary">${t.issuer}</td>
-            <td>${buildTypeTag(t.type)}</td>
-            <td class="number mono">${t.mw.toLocaleString()}</td>
-            <td style="color:var(--text-muted)">${t.date}</td>
-            <td class="number mono">${t.tariff ? '₹' + t.tariff.toFixed(2) : '—'}</td>
-            <td class="number mono">${t.sub ? t.sub.toFixed(1) + 'x' : '—'}</td>
-            <td>${buildTenderStatusTag(t.status)}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`
-    })}
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Live Tender Register</div>
+          <div class="card-subtitle">
+            SECI official tender pages · GUVNL official results · Tariff disclosed only when officially confirmed ·
+            Verified: ${TENDER_META.fetchedOn}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="source-chip manual" title="SECI: seci.co.in/tenders + seci.co.in/tenders/results | GUVNL: official result announcement">
+            <i class="fa-solid fa-file-arrow-down"></i> REAL · SECI / GUVNL
+          </span>
+        </div>
+      </div>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Tender ID</th>
+            <th>Issuer</th>
+            <th>Type</th>
+            <th class="number">Size (MW)</th>
+            <th>Published</th>
+            <th class="number">Tariff (₹/kWh)</th>
+            <th class="number">Subscription</th>
+            <th>Status</th>
+          </tr></thead>
+          <tbody>
+            ${TENDER_ROWS.map(t => {
+              const sCfg   = getTenderStatusConfig(t.status);
+              const tyCfg  = getTenderTypeConfig(t.type);
+              const tariff = t.tariffMin !== null
+                ? (t.tariffMax !== null && t.tariffMax !== t.tariffMin
+                    ? '₹' + t.tariffMin.toFixed(2) + '–' + t.tariffMax.toFixed(2)
+                    : '₹' + t.tariffMin.toFixed(2))
+                : '—';
+              return `<tr title="${t.sourceNote || ''}">
+                <td>
+                  <a href="${t.sourceUrl}" target="_blank" rel="noopener"
+                     style="color:var(--accent-blue);font-family:'JetBrains Mono',monospace;font-size:11px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+                    ${t.id}
+                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:8px;opacity:0.6"></i>
+                  </a>
+                  ${t.scheme ? `<div style="font-size:10px;color:var(--text-disabled);margin-top:1px">${t.scheme}</div>` : ''}
+                </td>
+                <td class="primary">${t.issuer}</td>
+                <td><span class="tag tag-${tyCfg.type}">${tyCfg.label}</span></td>
+                <td class="number mono">
+                  ${t.mwAwarded
+                    ? `<span title="${t.mwAwarded} MW awarded of ${t.mw} MW tendered">${t.mwAwarded.toLocaleString()} <span style="color:var(--text-disabled);font-size:10px">/ ${t.mw.toLocaleString()}</span></span>`
+                    : t.mw.toLocaleString()}
+                </td>
+                <td style="color:var(--text-muted);font-size:11px">${t.publishedOn}</td>
+                <td class="number mono">
+                  ${tariff !== '—'
+                    ? `<span title="${t.tariffNote || ''}" style="cursor:default">${tariff}</span>`
+                    : `<span style="color:var(--text-disabled)">—</span>`}
+                </td>
+                <td class="number mono">
+                  <span style="color:var(--text-disabled)">—</span>
+                </td>
+                <td><span class="tag tag-${sCfg.type}">${sCfg.label}</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:10px 20px;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · SECI / GUVNL</span>
+        <span class="chart-source">
+          Sources:
+          <a href="${TENDER_META.seciLiveUrl}" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">SECI Live Tenders</a>
+          ·
+          <a href="${TENDER_META.seciResultUrl}" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">SECI Results</a>
+          ·
+          <a href="https://www.guvnl.com/" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">GUVNL</a>
+          · Verified: ${TENDER_META.fetchedOn}
+          · Tariff shown only when officially confirmed in result announcement
+          · Subscription not published in structured form by SECI
+        </span>
+      </div>
+    </div>
   </div>
   `;
 
