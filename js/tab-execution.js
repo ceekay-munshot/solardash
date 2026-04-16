@@ -58,7 +58,47 @@ function initExecutionTab() {
         </div>
       </div>
     </div>
-    ${Components.chartCard({ id:'chartPipeline', title:'Under-Construction Pipeline', subtitle:'Quarterly MW under active construction', height:280, source: src.label })}
+    <!-- Pipeline chart: CEA quarterly under-construction PDFs fully blocked by robots.txt -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Under-Construction Solar Pipeline</div>
+          <div class="card-subtitle">Quarterly total solar MW under active construction</div>
+        </div>
+        <span class="source-chip" style="background:rgba(239,68,68,0.1);color:#ef4444;border-color:rgba(239,68,68,0.25)">
+          <i class="fa-solid fa-ban"></i> DATA UNAVAILABLE
+        </span>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:240px;gap:14px;padding:20px">
+          <div style="width:48px;height:48px;border-radius:50%;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-lock" style="color:#ef4444;font-size:20px"></i>
+          </div>
+          <div style="text-align:center;max-width:380px">
+            <div style="font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:8px">
+              Primary source blocked — not wiretable from public access
+            </div>
+            <div style="font-size:11px;color:var(--text-secondary);line-height:1.7">
+              CEA quarterly under-construction RE reports (cea.nic.in) are the only official source for this
+              quarterly solar pipeline series. All CEA paths — pages and direct PDF URLs — return
+              ROBOTS_DISALLOWED. Only one confirmed solar-specific under-construction figure exists from
+              accessible public sources: MNRE @mnreindia (Jan 2025) — 84,190 MW solar under
+              implementation as on 31 Dec 2024. A single point cannot form a quarterly series.
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px 12px;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:7px;font-size:10px;color:var(--text-secondary);line-height:1.7">
+          <strong style="color:#ef4444">Verification log:</strong>
+          cea.nic.in/rpm/quarterly-report → ROBOTS_DISALLOWED ·
+          cea.nic.in/rpm/ → ROBOTS_DISALLOWED ·
+          direct PDF wp-content/uploads/rpm_division/ → ROBOTS_DISALLOWED ·
+          Scribd Jun 2025 copy → paywalled, no solar breakdown ·
+          CEA snippet data (Mar/Sep 2025) → wind and hybrid MW visible in snippets but solar MW cut off ·
+          MNRE PIB annual → total RE pipeline only, not solar-specific ·
+          One confirmed solar UC point: 84.19 GW as on 31 Dec 2024 (MNRE @mnreindia)
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- State Commissioning + Developer Execution -->
@@ -219,10 +259,7 @@ function initExecutionTab() {
       { label: 'Commissioned MW (Solar)', data: COMMISSION_TREND_DATA.commissioned, color: '#22c55e' }
     ], { yLabel: 'MW' });
 
-    // Pipeline trend
-    Charts.multiLine('chartPipeline', ct.labels, [
-      { label:'Under-Construction MW', data: ct.pipeline, color: '#f59e0b', fill: true }
-    ], { yLabel: 'MW' });
+    // Pipeline chart — DATA UNAVAILABLE: cea.nic.in fully blocked by robots.txt; no chartPipeline canvas rendered
 
     // State donut — REAL DATA from STATE_COMMISSION_DATA (FY26)
     Charts.donut('chartStateCommission',
