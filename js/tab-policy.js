@@ -424,13 +424,6 @@ function renderPolicyTab() {
     </div>
   </div>`;
 
-  const upcomingForDeadline = sorted.filter(n => n.complianceDeadline || n.effectiveDate)
-    .map(n => ({
-      ...n,
-      _ref:  n.complianceDeadline || n.effectiveDate,
-      _type: n.complianceDeadline ? 'Compliance Deadline' : 'Effective Date',
-    })).sort((a, b) => a._ref.localeCompare(b._ref));
-
   el.innerHTML = `
   ${refreshBar}
   ${kpiHtml}
@@ -445,7 +438,7 @@ function renderPolicyTab() {
 
   <!-- Deadline Tracker + Watchlist -->
   <div class="grid-2 mb-6">
-    ${_renderDeadlineTracker(upcomingForDeadline.length ? null : sorted)}
+    ${_renderDeadlineTracker(sorted)}
     ${_renderWatchlist(sorted)}
   </div>
 
@@ -453,55 +446,8 @@ function renderPolicyTab() {
   ${_renderTable(sorted)}
   `;
 
-  // Fix deadline tracker: pass sorted array
-  _patchDeadlineTracker(sorted);
-
   // Bind refresh
   _bindRefresh();
-}
-
-/* Patch: re-render deadline tracker with correct args */
-function _patchDeadlineTracker(sorted) {
-  const now = Date.now();
-  const withDates = sorted.filter(n => n.complianceDeadline || n.effectiveDate)
-    .map(n => ({
-      ...n,
-      _ref:  n.complianceDeadline || n.effectiveDate,
-      _type: n.complianceDeadline ? 'Compliance Deadline' : 'Effective Date',
-    })).sort((a, b) => a._ref.localeCompare(b._ref));
-
-  // Find and re-render just the deadline tracker card body
-  const tracker = document.querySelector('[data-block="deadlines"]');
-  if (tracker) {
-    tracker.innerHTML = withDates.length ? withDates.map(n => {
-      const days = _daysFromNow(n._ref);
-      const ac   = POLICY_AUTH[n.authority] || { color: '#6b7280' };
-      let statusLabel, icon;
-      if (days === null)   { statusLabel = ''; icon = ''; }
-      else if (days < 0)   { statusLabel = `${Math.abs(days)}d ago`; icon = '⏰'; }
-      else if (days <= 30) { statusLabel = `${days}d`;  icon = '🔴'; }
-      else if (days <= 90) { statusLabel = `${days}d`;  icon = '🟡'; }
-      else                 { statusLabel = `${days}d`;  icon = '🟢'; }
-      const dl = n.complianceDeadline
-        ? `<div style="font-size:10px;margin-top:4px;color:var(--status-warning)">⚠ Deadline: ${_fmtDate(n.complianceDeadline)}</div>`
-        : `<div style="font-size:10px;margin-top:4px;color:var(--text-muted)">Effective: ${_fmtDate(n.effectiveDate)}</div>`;
-      return `<div style="display:grid;grid-template-columns:110px 1fr 80px;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--border-subtle)">
-        <div>
-          <div style="font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace">${_fmtDate(n._ref)}</div>
-          <div style="font-size:9px;color:var(--text-muted);margin-top:2px">${n._type}</div>
-        </div>
-        <div>
-          <div style="display:flex;gap:5px;margin-bottom:3px;flex-wrap:wrap">${_authBadge(n.authority)}<span style="font-size:10px;color:var(--text-muted)">${n.category}</span></div>
-          <div style="font-size:11px;color:var(--text-primary);font-weight:500;line-height:1.3">${n.title}</div>
-          ${dl}
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:12px;font-weight:700;color:${days !== null && days <= 30 ? 'var(--status-negative)' : days !== null && days <= 90 ? 'var(--status-warning)' : 'var(--status-positive)'}">${icon} ${statusLabel}</div>
-          ${_impactTag(n.impactTag)}
-        </div>
-      </div>`;
-    }).join('') : '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:12px">No notices with stated deadlines in current dataset.</div>';
-  }
 }
 
 /* ── Refresh button binding ─────────────────────────────────────────────── */
