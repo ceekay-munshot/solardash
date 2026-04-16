@@ -63,25 +63,48 @@ function initExecutionTab() {
 
   <!-- State Commissioning + Developer Execution -->
   <div class="grid-2 mb-6">
-    <!-- State Panel -->
+    <!-- State Commissioning — REAL DATA (MNRE state-wise PDFs FY26) -->
     <div class="card">
       <div class="card-header">
         <div>
-          <div class="card-title">State-Wise Commissioning (FY YTD)</div>
-          <div class="card-subtitle">MW newly commissioned by state</div>
+          <div class="card-title">State-Wise Commissioning (${STATE_COMMISSION_META.fy})</div>
+          <div class="card-subtitle">
+            Solar MW newly commissioned by state ·
+            ${STATE_COMMISSION_META.period} ·
+            ${STATE_COMMISSION_META.fy26Total.toLocaleString()} MW total
+          </div>
         </div>
-        <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>
+        <span class="source-chip manual"
+              title="Mar 2026: MNRE state-wise PDF (directly fetched). Mar 2025: MNRE RE Stats 2024-25 (top 5 RE states) + MNRE Sep 2024 archive + interpolation.">
+          <i class="fa-solid fa-file-arrow-down"></i> REAL · MNRE
+        </span>
       </div>
       <div class="card-body">
         <div class="canvas-wrap" style="height:220px">
           <canvas id="chartStateCommission"></canvas>
         </div>
         <div style="margin-top:16px">
-          ${d.stateCommission.map(s =>
-            Components.stateBar(s.state, s.mw.toLocaleString(), (s.mw / d.stateCommission[0].mw * 100), s.color, 'MW')
+          ${STATE_COMMISSION_ROWS.map(s =>
+            Components.stateBar(s.state, s.fy26Mw.toLocaleString(), (s.fy26Mw / STATE_COMMISSION_ROWS[0].fy26Mw * 100), s.color, 'MW')
           ).join('')}
         </div>
-        ${Components.sourceFooter(src.label, 'execution')}
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:7px;font-size:10px;color:var(--text-secondary);line-height:1.7">
+          <strong style="color:var(--accent-blue)">Method:</strong>
+          FY26 addition = Mar 2026 state solar (exact, MNRE PDF) − Mar 2025 baseline.
+          Tier B (${STATE_COMMISSION_META.tierBStates}): Mar 2025 from MNRE RE Statistics 2024-25 solar % of RE total.
+          Tier C (${STATE_COMMISSION_META.tierCStates}): Mar 2025 interpolated from MNRE Sep 2024 archive + national FY26/FY25-H2 growth ratio.
+          National FY26 total: ${(STATE_COMMISSION_META.fy26Total/1000).toFixed(2)} GW (confirmed).
+          State values sum to national total; state distribution for non-top-5 states carries ±15–25% uncertainty.
+        </div>
+        <div style="margin-top:8px;padding:6px 0;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · MNRE</span>
+          <span class="chart-source">
+            Mar 2026:
+            <a href="${STATE_COMMISSION_META.pdfUrl}" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">MNRE state-wise PDF</a>
+            · Mar 2025: MNRE RE Statistics 2024-25 + Sep 2024 archive ·
+            Data cutoff: ${STATE_COMMISSION_META.cutoffDate}
+          </span>
+        </div>
       </div>
     </div>
 
@@ -201,11 +224,11 @@ function initExecutionTab() {
       { label:'Under-Construction MW', data: ct.pipeline, color: '#f59e0b', fill: true }
     ], { yLabel: 'MW' });
 
-    // State donut
+    // State donut — REAL DATA from STATE_COMMISSION_DATA (FY26)
     Charts.donut('chartStateCommission',
-      d.stateCommission.map(s => s.state),
-      d.stateCommission.map(s => s.mw),
-      d.stateCommission.map(s => s.color)
+      STATE_COMMISSION_DATA.states,
+      STATE_COMMISSION_DATA.mw,
+      STATE_COMMISSION_DATA.colors
     );
   });
 }
