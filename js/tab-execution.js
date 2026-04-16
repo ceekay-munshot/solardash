@@ -21,7 +21,43 @@ function initExecutionTab() {
 
   <!-- Commission Trend + Pipeline -->
   <div class="grid-2 mb-6">
-    ${Components.chartCard({ id:'chartCommission', title:'Commissioning Trend', subtitle:'Quarterly MW additions — new commissioned capacity', height:280, source: src.label })}
+    <!-- Commissioning Trend — REAL DATA (MNRE Physical Progress + PIB) -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Commissioning Trend</div>
+          <div class="card-subtitle">
+            Quarterly newly commissioned solar capacity (MW) ·
+            Derived from MNRE cumulative installed solar figures ·
+            Q1 FY25 – Q4 FY26
+          </div>
+        </div>
+        <span class="source-chip manual"
+              title="MNRE Physical Progress page (mnre.gov.in) + PIB official FY totals + Mercom/JMK citing CEA/MNRE">
+          <i class="fa-solid fa-file-arrow-down"></i> REAL · MNRE / PIB
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="canvas-wrap" style="height:240px"><canvas id="chartCommission"></canvas></div>
+        <div style="margin-top:10px;padding:10px 12px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:7px;font-size:10px;color:var(--text-secondary);line-height:1.7">
+          <strong style="color:#22c55e">Definition:</strong>
+          Quarterly MW = change in MNRE cumulative installed solar capacity between quarter-end dates.
+          Includes utility-scale + grid-connected rooftop + hybrid solar component + off-grid.
+          FY25 total: ${(COMMISSION_TREND_META.fy25Total/1000).toFixed(1)} GW (official: ${(COMMISSION_TREND_META.fy25Official/1000).toFixed(2)} GW) ·
+          FY26 total: ${(COMMISSION_TREND_META.fy26Total/1000).toFixed(1)} GW (official: ${(COMMISSION_TREND_META.fy26Official/1000).toFixed(2)} GW) ·
+          Cumulative at Mar 2026: ${(COMMISSION_TREND_META.latestCumulative/1000).toFixed(2)} GW
+        </div>
+        <div style="margin-top:8px;padding:6px 0;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · MNRE / PIB</span>
+          <span class="chart-source">
+            <a href="https://mnre.gov.in/en/physical-progress/" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">MNRE Physical Progress</a>
+            · PIB official FY releases ·
+            Mercom India + JMK Research (citing CEA/MNRE) for interim quarter-end anchors ·
+            Data cutoff: ${COMMISSION_TREND_META.cutoffDate}
+          </span>
+        </div>
+      </div>
+    </div>
     ${Components.chartCard({ id:'chartPipeline', title:'Under-Construction Pipeline', subtitle:'Quarterly MW under active construction', height:280, source: src.label })}
   </div>
 
@@ -155,10 +191,9 @@ function initExecutionTab() {
   `;
 
   requestAnimationFrame(() => {
-    const ct = d.commissioningTrend;
-    // Commission trend
-    Charts.bar('chartCommission', ct.labels, [
-      { label:'Commissioned MW', data: ct.commissioned, color: '#22c55e' }
+    // Commission trend — REAL DATA from COMMISSION_TREND_DATA
+    Charts.bar('chartCommission', COMMISSION_TREND_DATA.labels, [
+      { label: 'Commissioned MW (Solar)', data: COMMISSION_TREND_DATA.commissioned, color: '#22c55e' }
     ], { yLabel: 'MW' });
 
     // Pipeline trend
