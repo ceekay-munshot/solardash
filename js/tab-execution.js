@@ -148,32 +148,77 @@ function initExecutionTab() {
       </div>
     </div>
 
-    <!-- Developer Execution Ranking -->
-    ${Components.tableCard({
-      title: 'Developer Execution Performance Ranking',
-      subtitle: 'On-time commissioning rate and lag analysis',
-      source: src.label,
-      body: `<table class="data-table">
-        <thead><tr>
-          <th>Rank</th><th>Developer</th>
-          <th class="number">Total (MW)</th>
-          <th class="number">Commissioned</th>
-          <th class="number">On-Time %</th>
-          <th class="number">Avg Lag (mo)</th>
-        </tr></thead>
-        <tbody>
-          ${d.developerExec.map(dev => `
-          <tr>
-            <td>${Components.rankBadge(dev.rank)}</td>
-            <td class="primary">${dev.dev}</td>
-            <td class="number mono">${dev.total.toLocaleString()}</td>
-            <td class="number mono">${dev.commissioned.toLocaleString()}</td>
-            <td class="number">${buildOnTimeBar(dev.onTime)}</td>
-            <td class="number mono" style="color:${dev.avgLag > 16 ? 'var(--status-negative)' : dev.avgLag > 13 ? 'var(--status-warning)' : 'var(--status-positive)'}">${dev.avgLag}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`
-    })}
+    <!-- Developer Commissioning Conversion Ranking — REAL DATA -->
+    <div class="card" style="overflow:hidden">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Developer Commissioning Conversion Ranking</div>
+          <div class="card-subtitle">
+            Commissioned RE capacity vs. contracted portfolio ·
+            Sorted by Commissioned MW · ${DEVELOPER_META.developersWithConversion}/4 developers have full conversion data
+          </div>
+        </div>
+        <span class="source-chip manual"
+              title="BSE Reg-30 / SEC 6-K mandatory regulatory disclosures. CEA plant-wise (primary source) blocked by robots.txt.">
+          <i class="fa-solid fa-file-arrow-down"></i> REAL · BSE/SEC
+        </span>
+      </div>
+      <div class="card-body" style="padding:0">
+        <div style="overflow-x:auto">
+          <table class="data-table" style="min-width:700px">
+            <thead><tr>
+              <th style="width:42px">Rank</th>
+              <th>Developer</th>
+              <th class="number" title="Total contracted portfolio (PPAs+LoAs) per official quarterly disclosure. N/A where not confirmed.">Portfolio MW</th>
+              <th class="number" title="Operational/commercially commissioned RE capacity">Commissioned MW</th>
+              <th class="number" title="Portfolio MW minus Commissioned MW (derived)">Under Const.</th>
+              <th class="number" title="Commissioned / Portfolio × 100. Shown only where both figures confirmed from same official source.">Conv. %</th>
+              <th class="number" style="font-size:10px">Latest Quarter</th>
+            </tr></thead>
+            <tbody>
+              ${DEVELOPER_ROWS.map(dev => {
+                const portDisp = dev.portfolioMW ? dev.portfolioMW.toLocaleString() + ' MW' : '<span style="color:var(--text-muted)">—</span>';
+                const ucDisp   = dev.ucMW ? dev.ucMW.toLocaleString() + ' MW'  : '<span style="color:var(--text-muted)">—</span>';
+                const convDisp = dev.conversionPct !== null
+                  ? `<span style="font-weight:700;color:${dev.conversionPct>=70?'var(--status-positive)':dev.conversionPct>=50?'var(--status-warning)':'var(--status-negative)'}">${dev.conversionPct.toFixed(1)}%</span>`
+                  : '<span style="color:var(--text-muted);font-size:10px">—</span>';
+                const solarTag = dev.commissionedSolarMW
+                  ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:2px">${(dev.commissionedSolarMW/1000).toFixed(1)} GW solar confirmed</div>`
+                  : (dev.commissionedNote.includes('solar-specific') ? '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">solar split not confirmed</div>' : '');
+                return `<tr>
+                  <td>${Components.rankBadge(dev.rank)}</td>
+                  <td>
+                    <div style="font-weight:600;color:var(--text-primary)">${dev.developer}</div>
+                    <div style="font-size:10px;color:var(--text-muted)">${dev.ticker}</div>
+                    ${solarTag}
+                  </td>
+                  <td class="number mono" style="font-size:11px">${portDisp}</td>
+                  <td class="number mono" style="font-weight:700;color:${dev.color}">${(dev.commissionedMW/1000).toFixed(1)} GW</td>
+                  <td class="number mono" style="font-size:11px">${ucDisp}</td>
+                  <td class="number">${convDisp}</td>
+                  <td class="number" style="font-size:10px;color:var(--text-secondary)">${dev.latestQuarter}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:10px 16px 12px;background:rgba(59,130,246,0.04);border-top:1px solid var(--border-subtle);font-size:10px;color:var(--text-secondary);line-height:1.7">
+          <strong style="color:var(--accent-blue)">Sort basis:</strong> ${DEVELOPER_META.sortBasis} — ${DEVELOPER_META.sortReason}<br>
+          <strong style="color:var(--accent-blue)">Coverage:</strong> ${DEVELOPER_META.coverageNote}<br>
+          <strong style="color:#ef4444">CEA blocked:</strong> ${DEVELOPER_META.ceaBlockedNote}
+        </div>
+        <div style="padding:8px 16px;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · BSE/SEC</span>
+          <span class="chart-source">
+            AGEL: <a href="https://www.adani.com/newsroom/media-releases/adani-green-energy-delivers-on-5-gw-commitment-in-fy26" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">official press release (Apr 2026)</a> ·
+            ReNew: <a href="https://investor.renew.com" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">SEC 6-K + Q3 FY26 earnings</a> ·
+            NTPC Green: BSE filing Q2 FY26 + Reg-30 notices ·
+            SJVN: BSE Reg-30 Bikaner commissioning + Q2 FY26 concall ·
+            Data cutoff: ${DEVELOPER_META.dataAsOf}
+          </span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Delay Tracker + COD Timeline -->
