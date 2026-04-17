@@ -17,12 +17,20 @@ function initDemandTab() {
   const src = DATA_SOURCES.demand;
 
   el.innerHTML = `
-  <!-- KPI Row — MOCK (not yet wired) -->
+  <!-- KPI Row — values are MOCK; each card carries its direct official source link -->
   <div class="grid-4 mb-6">
-    ${Components.kpiCard({ label:'Total Installed Solar Base', value: d.kpis.totalSolar.value, unit: d.kpis.totalSolar.unit, delta: d.kpis.totalSolar.delta, dir: d.kpis.totalSolar.dir, context: d.kpis.totalSolar.context, icon:'fa-solar-panel', accentColor:'var(--accent-solar)', iconBg:'rgba(245,158,11,0.1)', source:'mnre' })}
-    ${Components.kpiCard({ label:'Solar Share in Generation', value: d.kpis.solarShare.value, unit: d.kpis.solarShare.unit, delta: d.kpis.solarShare.delta, dir: d.kpis.solarShare.dir, context: d.kpis.solarShare.context, icon:'fa-chart-pie', accentColor:'var(--accent-blue)', iconBg:'rgba(59,130,246,0.1)', source:'mnre' })}
-    ${Components.kpiCard({ label:'Peak Demand (FY YTD High)', value: d.kpis.peakDemand.value, unit: d.kpis.peakDemand.unit, delta: d.kpis.peakDemand.delta, dir: d.kpis.peakDemand.dir, context: d.kpis.peakDemand.context, icon:'fa-bolt', accentColor:'var(--accent-orange)', iconBg:'rgba(249,115,22,0.1)', source:'cea' })}
-    ${Components.kpiCard({ label:'Energy Demand Growth YoY', value: d.kpis.demandGrowth.value, unit: d.kpis.demandGrowth.unit, delta: d.kpis.demandGrowth.delta, dir: d.kpis.demandGrowth.dir, context: d.kpis.demandGrowth.context, icon:'fa-arrow-trend-up', accentColor:'var(--accent-green)', iconBg:'rgba(34,197,94,0.1)', source:'cea' })}
+    ${Components.kpiCard({ label:'Total Installed Solar Base', value: d.kpis.totalSolar.value, unit: d.kpis.totalSolar.unit, delta: d.kpis.totalSolar.delta, dir: d.kpis.totalSolar.dir, context: d.kpis.totalSolar.context, icon:'fa-solar-panel', accentColor:'var(--accent-solar)', iconBg:'rgba(245,158,11,0.1)',
+      sourceUrl: MNRE_META.pdfUrl,
+      sourceLabel: `MNRE Physical Progress · ${MNRE_META.dataAsOf}` })}
+    ${Components.kpiCard({ label:'Solar Share in Generation', value: d.kpis.solarShare.value, unit: d.kpis.solarShare.unit, delta: d.kpis.solarShare.delta, dir: d.kpis.solarShare.dir, context: d.kpis.solarShare.context, icon:'fa-chart-pie', accentColor:'var(--accent-blue)', iconBg:'rgba(59,130,246,0.1)',
+      sourceUrl: 'https://gen-re.cea.gov.in/',
+      sourceLabel: 'CEA RE Generation Portal' })}
+    ${Components.kpiCard({ label:'Peak Demand (FY YTD High)', value: d.kpis.peakDemand.value, unit: d.kpis.peakDemand.unit, delta: d.kpis.peakDemand.delta, dir: d.kpis.peakDemand.dir, context: d.kpis.peakDemand.context, icon:'fa-bolt', accentColor:'var(--accent-orange)', iconBg:'rgba(249,115,22,0.1)',
+      sourceUrl: 'https://cea.nic.in/dm/monthly-reports/?lang=en',
+      sourceLabel: 'CEA Monthly Reports' })}
+    ${Components.kpiCard({ label:'Energy Demand Growth YoY', value: d.kpis.demandGrowth.value, unit: d.kpis.demandGrowth.unit, delta: d.kpis.demandGrowth.delta, dir: d.kpis.demandGrowth.dir, context: d.kpis.demandGrowth.context, icon:'fa-arrow-trend-up', accentColor:'var(--accent-green)', iconBg:'rgba(34,197,94,0.1)',
+      sourceUrl: 'https://cea.nic.in/monthly-reports-archive/?lang=en',
+      sourceLabel: 'CEA Monthly Reports Archive' })}
   </div>
 
   <!-- Seasonal Momentum Tracker — LIVE (CEA RE portal primary, GRID-INDIA cross-check) -->

@@ -18,12 +18,37 @@ const Components = {
       iconBg = 'rgba(245,158,11,0.1)',
       negativeGood = false,
       source = '',
+      sourceUrl = '',
+      sourceLabel = '',
+      sourceKind = '',   // 'live' | 'manual' | 'mock' — overrides inference
     } = opts;
 
     const deltaClass = dir === 'flat' ? 'flat' : (
       (dir === 'up' && !negativeGood) || (dir === 'down' && negativeGood) ? 'up' : 'down'
     );
     const deltaIcon = dir === 'up' ? 'fa-arrow-up' : dir === 'down' ? 'fa-arrow-down' : 'fa-minus';
+
+    // Source chip: if a URL is provided, render a clickable source link.
+    // Fall back to the legacy MOCK chip for cards that still carry mock data.
+    let footerChip = '';
+    if (sourceUrl) {
+      const kind = sourceKind || 'manual';
+      const iconName = kind === 'live' ? 'fa-bolt' :
+                       kind === 'mock' ? 'fa-flask' :
+                                         'fa-file-arrow-down';
+      footerChip = `
+        <a href="${sourceUrl}" target="_blank" rel="noopener"
+           title="Open official source — ${sourceLabel || sourceUrl}"
+           style="text-decoration:none;display:inline-flex;align-items:center">
+          <span class="source-chip ${kind}" style="display:inline-flex;align-items:center;gap:4px">
+            <i class="fa-solid ${iconName}"></i>
+            ${sourceLabel || 'Source'}
+            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:8px;opacity:0.7"></i>
+          </span>
+        </a>`;
+    } else if (source) {
+      footerChip = `<span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>`;
+    }
 
     return `
     <div class="kpi-card" style="--kpi-accent:${accentColor}; --kpi-icon-bg:${iconBg}">
@@ -36,7 +61,7 @@ const Components = {
         ${delta ? `<span class="kpi-delta ${deltaClass}"><i class="fa-solid ${deltaIcon}"></i> ${delta}</span>` : ''}
         ${context ? `<span class="kpi-context">${context}</span>` : ''}
       </div>
-      ${source ? `<div style="margin-top:8px"><span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span></div>` : ''}
+      ${footerChip ? `<div style="margin-top:8px">${footerChip}</div>` : ''}
     </div>`;
   },
 
