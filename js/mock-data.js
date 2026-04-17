@@ -39,14 +39,6 @@ const MOCK = {
       { state: 'Uttar Pradesh',  gw: 2.9,  rank: 9, pct: 14  },
       { state: 'Punjab',         gw: 1.2,  rank:10, pct: 6   },
     ],
-    seasonality: [
-      { month:'Oct', label:'Peak Solar', val:'+28%', trend:'up' },
-      { month:'Nov', label:'Post-Monsoon Surge', val:'+22%', trend:'up' },
-      { month:'Dec', label:'Winter Plateau', val:'+18%', trend:'flat' },
-      { month:'Jan', label:'Winter Demand High', val:'+16%', trend:'flat' },
-      { month:'Feb', label:'Transition', val:'+12%', trend:'up' },
-      { month:'Mar', label:'Pre-summer Rise', val:'+19%', trend:'up' },
-    ]
   },
 
   /* ── TAB 2: MANUFACTURING ───────────────────────────────────────── */

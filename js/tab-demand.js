@@ -25,18 +25,8 @@ function initDemandTab() {
     ${Components.kpiCard({ label:'Energy Demand Growth YoY', value: d.kpis.demandGrowth.value, unit: d.kpis.demandGrowth.unit, delta: d.kpis.demandGrowth.delta, dir: d.kpis.demandGrowth.dir, context: d.kpis.demandGrowth.context, icon:'fa-arrow-trend-up', accentColor:'var(--accent-green)', iconBg:'rgba(34,197,94,0.1)', source:'cea' })}
   </div>
 
-  <!-- Seasonality Strip — MOCK (not yet wired) -->
-  <div class="mb-6">
-    ${Components.sectionHeader('Seasonal Momentum Tracker', 'Month-over-prior-year solar generation momentum')}
-    <div class="momentum-strip">
-      ${d.seasonality.map(s => `
-        <div class="momentum-item">
-          <div class="momentum-label">${s.month}</div>
-          <div class="momentum-val">${s.val}</div>
-          <div class="momentum-trend ${s.trend === 'up' ? 'text-green' : 'text-secondary'}">${s.label}</div>
-        </div>`).join('')}
-    </div>
-  </div>
+  <!-- Seasonal Momentum Tracker — LIVE (CEA RE portal primary, GRID-INDIA cross-check) -->
+  <div class="mb-6" id="seasonalMomentumRoot"></div>
 
   <!-- Charts Row 1 — MOCK (not yet wired) -->
   <div class="grid-2 mb-6">
@@ -188,6 +178,12 @@ function initDemandTab() {
 
     // Run freshness check after paint (best-effort, fails safely)
     checkMNREDataFreshness();
+
+    // Seasonal Momentum Tracker — live fetch from CEA RE portal, with
+    // graceful "Source unavailable" fallback (no mock data).
+    if (typeof initSeasonalMomentum === 'function') {
+      initSeasonalMomentum('#seasonalMomentumRoot');
+    }
   });
 }
 
