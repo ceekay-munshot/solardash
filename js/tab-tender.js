@@ -144,30 +144,73 @@ function initTenderTab() {
     </div>
   </div>
 
-  <!-- Cancelled / Reissued Tender Panel -->
+  <!-- Cancelled / Reissued Tender Panel — REAL DATA (SECI official notices) -->
   <div class="mb-6">
     <div class="card">
       <div class="card-header">
         <div>
           <div class="card-title">Cancelled & Reissued Tender Tracker</div>
-          <div class="card-subtitle">Monitoring tender withdrawals, revisions, and reissuances</div>
+          <div class="card-subtitle">
+            Official SECI tender lifecycle notices · Reason shown only when explicitly stated in the cancellation document ·
+            Verified: ${CANCELLED_TENDER_META.cutoffDate}
+          </div>
         </div>
-        <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>
+        <span class="source-chip manual" title="SECI official notices and tender documents. No inference from news.">
+          <i class="fa-solid fa-file-arrow-down"></i> REAL · SECI
+        </span>
       </div>
       <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-          ${d.cancelledTenders.map(t => `
-          <div style="background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:10px;padding:14px">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-size:13px;font-weight:700;color:var(--text-primary)">${t.issuer}</div>
+        ${CANCELLED_TENDER_DATA.length === 0 ? `
+        <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">
+          No explicitly documented tender cancellations, reissuances, revisions, or deferrals within the tracked period.
+        </div>` : `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+          ${CANCELLED_TENDER_DATA.map(t => {
+            const mwDisplay = t.mw >= 1
+              ? `${t.mw.toLocaleString()} <span style="font-size:12px;font-weight:500;color:var(--text-secondary)">MW</span>`
+              : `${(t.mw * 1000).toLocaleString()} <span style="font-size:12px;font-weight:500;color:var(--text-secondary)">kW</span>`;
+            const reasonText = t.reasonExplicit
+              ? t.reason
+              : `<span style="font-style:italic;color:var(--text-disabled)">Reason unspecified in official notice</span>`;
+            const registerLink = t.relatedRegisterId
+              ? `<span style="font-size:10px;color:var(--text-disabled)"> · in register: <span style="font-family:'JetBrains Mono',monospace;color:var(--accent-blue)">${t.relatedRegisterId}</span></span>`
+              : '';
+            return `
+          <div style="background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text-primary)">${t.issuer}</div>
+                <div style="font-size:10px;color:var(--text-disabled);font-family:'JetBrains Mono',monospace;margin-top:1px">${t.scheme || ''}</div>
+              </div>
               ${buildCancelledTag(t.status)}
             </div>
-            <div style="font-size:20px;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;margin-bottom:4px">${t.mw.toLocaleString()} <span style="font-size:12px;font-weight:500;color:var(--text-secondary)">MW</span></div>
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">${t.reason}</div>
-            <div style="font-size:10px;color:var(--text-disabled);font-family:'JetBrains Mono',monospace">${t.date}</div>
-          </div>`).join('')}
+            <div style="font-size:20px;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace">${mwDisplay}</div>
+            <div style="font-size:11px;color:var(--text-muted);line-height:1.4">${reasonText}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto">
+              <div style="font-size:10px;color:var(--text-disabled);font-family:'JetBrains Mono',monospace">
+                Notice: ${t.noticeDate || '—'}${registerLink}
+              </div>
+              ${t.sourceUrl ? `<a href="${t.sourceUrl}" target="_blank" rel="noopener"
+                   title="${t.sourceLabel || 'Official source'}"
+                   style="color:var(--accent-blue);font-size:10px;text-decoration:none;display:inline-flex;align-items:center;gap:3px">
+                source <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:8px;opacity:0.7"></i>
+              </a>` : ''}
+            </div>
+          </div>`;
+          }).join('')}
+        </div>`}
+        <div style="padding:10px 0 0;border-top:1px solid var(--border-subtle);margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · SECI</span>
+          <span class="chart-source">
+            Sources:
+            <a href="${CANCELLED_TENDER_META.seciNoticesUrl}" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">SECI Tenders</a>
+            · Linked to Live Tender Register (any TENDER_ROWS row with status
+            "Cancelled / Reissued" auto-surfaces here)
+            · Reason only when explicitly stated in official lifecycle document
+            · Cancellation/reissue never inferred from missing updates
+            · Verified: ${CANCELLED_TENDER_META.cutoffDate}
+          </span>
         </div>
-        ${Components.sourceFooter(src.label, 'tender')}
       </div>
     </div>
   </div>

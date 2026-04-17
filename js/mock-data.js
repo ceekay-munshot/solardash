@@ -113,12 +113,6 @@ const MOCK = {
       labels: ['Q1FY22','Q2FY22','Q3FY22','Q4FY22','Q1FY23','Q2FY23','Q3FY23','Q4FY23','Q1FY24','Q2FY24','Q3FY24','Q4FY24','Q1FY25','Q2FY25','Q3FY25'],
       tariff: [2.14,2.18,2.11,2.09,2.22,2.35,2.42,2.48,2.55,2.64,2.71,2.68,2.63,2.61,2.58],
     },
-    cancelledTenders: [
-      { issuer:'SECI', mw:1200, reason:'Insufficient bids', status:'Reissued', date:'Dec 2024' },
-      { issuer:'MSEDCL', mw:500, reason:'Tariff ceiling breach', status:'Revised & Open', date:'Jan 2025' },
-      { issuer:'GETCO', mw:800, reason:'Land issues', status:'Cancelled', date:'Nov 2024' },
-      { issuer:'UPNEDA', mw:600, reason:'Grid readiness', status:'Deferred', date:'Feb 2025' },
-    ],
     tenderTable: [
       { id:'SECI-146', issuer:'SECI', type:'Solar',mw:4000,date:'Jan 25',tariff:2.58,status:'Open',sub:2.1  },
       { id:'NTPC-RE12', issuer:'NTPC',type:'Hybrid',mw:1500,date:'Dec 24',tariff:3.84,status:'Awarded',sub:1.9},
