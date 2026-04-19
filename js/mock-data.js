@@ -445,5 +445,5 @@ const DATA_SOURCES = {
   execution:     { label: 'MNRE RECPDCL + Company Disclosures', status: 'mock', updated: '14 Apr 2025' },
   ipp:           { label: 'BSE / NSE Filings + Company Reports', status: 'mock', updated: '14 Apr 2025' },
   policy:        { label: 'Gazette Notifications + MNRE/MoP Orders', status: 'mock', updated: '14 Apr 2025' },
-  grid:          { label: 'PRAAPTI Portal + POSOCO + CEA', status: 'mock', updated: '14 Apr 2025' },
+  grid:          { label: 'PRAAPTI + CEA + GRID-India + CERC + RBI', status: 'real', updated: 'per data/grid-risk.json' },
 };
