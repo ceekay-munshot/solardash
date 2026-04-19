@@ -10,10 +10,50 @@ function initExecutionTab() {
   const d = MOCK.execution;
   const src = DATA_SOURCES.execution;
 
+  // Effective data (live-first, seed-fallback) for the three wired blocks.
+  const kpiComm   = (typeof execGetCommissionedKPI === 'function') ? execGetCommissionedKPI() : null;
+  const trend     = (typeof execGetCommissionTrend === 'function') ? execGetCommissionTrend() : null;
+  const stateComm = (typeof execGetStateCommission === 'function') ? execGetStateCommission() : null;
+  const modeChip  = (m) => (typeof execModeChip === 'function') ? execModeChip(m) : '';
+  const refreshLine = (typeof execRefreshStatusText === 'function') ? execRefreshStatusText() : '';
+
+  // Commissioned KPI — live-first, seed-fallback; no mock fallback
+  let commissionedCard;
+  if (kpiComm && (kpiComm.mode === 'live' || kpiComm.mode === 'seed')) {
+    const v = kpiComm.fyYtdMW;
+    const unitMW = v >= 10000 ? (v / 1000).toFixed(2) + ' GW' : v.toLocaleString() + ' MW';
+    const ctx = kpiComm.mode === 'live'
+      ? `${kpiComm.currentFY || 'FY'} YTD · live · as of ${kpiComm.asOfDate || '—'}`
+      : `${kpiComm.currentFY || 'FY26'} YTD · seed · as of ${kpiComm.asOfDate || EXEC_SEED_AS_OF}`;
+    commissionedCard = Components.kpiCard({
+      label:       'Commissioned Capacity (FY YTD)',
+      value:       unitMW.split(' ')[0],
+      unit:        unitMW.split(' ')[1],
+      delta:       kpiComm.mode === 'live' ? 'Live' : 'Seed',
+      dir:         'flat',
+      context:     ctx,
+      icon:        'fa-plug-circle-check',
+      accentColor: 'var(--accent-green)',
+      iconBg:      'rgba(34,197,94,0.1)',
+    });
+  } else {
+    commissionedCard = Components.kpiCard({
+      label:       'Commissioned Capacity (FY YTD)',
+      value:       '—',
+      unit:        '',
+      delta:       'Unavailable',
+      dir:         'flat',
+      context:     'Primary source unreachable from browser',
+      icon:        'fa-plug-circle-check',
+      accentColor: 'var(--accent-green)',
+      iconBg:      'rgba(34,197,94,0.1)',
+    });
+  }
+
   el.innerHTML = `
   <!-- KPI Row -->
   <div class="grid-4 mb-6">
-    ${Components.kpiCard({ label:'Commissioned Capacity (FY YTD)', value: d.kpis.commissioned.value, unit: 'MW', delta: d.kpis.commissioned.delta, dir: 'up', context: d.kpis.commissioned.context, icon:'fa-plug-circle-check', accentColor:'var(--accent-green)', iconBg:'rgba(34,197,94,0.1)' })}
+    ${commissionedCard}
     ${Components.kpiCard({ label:'Under-Construction Pipeline', value: d.kpis.underConstruction.value, unit: 'MW', delta: d.kpis.underConstruction.delta, dir: 'up', context: d.kpis.underConstruction.context, icon:'fa-hard-hat', accentColor:'var(--accent-solar)', iconBg:'rgba(245,158,11,0.1)' })}
     ${Components.kpiCard({ label:'Delayed Projects', value: d.kpis.delayed.value, unit: 'MW', delta: d.kpis.delayed.delta, dir: 'down', negativeGood: true, context: d.kpis.delayed.context, icon:'fa-clock', accentColor:'var(--accent-red)', iconBg:'rgba(239,68,68,0.1)' })}
     ${Components.kpiCard({ label:'Avg. Award-to-COD Lag', value: d.kpis.avgLag.value, unit: 'mo', delta: d.kpis.avgLag.delta, dir: 'down', negativeGood: true, context: d.kpis.avgLag.context, icon:'fa-calendar-days', accentColor:'var(--accent-teal)', iconBg:'rgba(20,184,166,0.1)' })}
@@ -21,21 +61,18 @@ function initExecutionTab() {
 
   <!-- Commission Trend + Pipeline -->
   <div class="grid-2 mb-6">
-    <!-- Commissioning Trend — REAL DATA (MNRE Physical Progress + PIB) -->
+    <!-- Commissioning Trend — LIVE-first, SEED-fallback (MNRE Physical Progress) -->
     <div class="card">
       <div class="card-header">
         <div>
           <div class="card-title">Commissioning Trend</div>
           <div class="card-subtitle">
             Quarterly newly commissioned solar capacity (MW) ·
-            Derived from MNRE cumulative installed solar figures ·
-            Q1 FY25 – Q4 FY26
+            ${trend && trend.labels && trend.labels.length ? trend.labels[0] + ' – ' + trend.labels[trend.labels.length - 1] : '—'} ·
+            ${trend ? (trend.mode === 'live' ? 'Live' : 'Seed') + ' · as of ' + (trend.asOfDate || '—') : 'Unavailable'}
           </div>
         </div>
-        <span class="source-chip manual"
-              title="MNRE Physical Progress page (mnre.gov.in) + PIB official FY totals + Mercom/JMK citing CEA/MNRE">
-          <i class="fa-solid fa-file-arrow-down"></i> REAL · MNRE / PIB
-        </span>
+        ${modeChip(trend ? trend.mode : 'unavailable')}
       </div>
       <div class="card-body">
         <div class="canvas-wrap" style="height:240px"><canvas id="chartCommission"></canvas></div>
@@ -43,17 +80,21 @@ function initExecutionTab() {
           <strong style="color:#22c55e">Definition:</strong>
           Quarterly MW = change in MNRE cumulative installed solar capacity between quarter-end dates.
           Includes utility-scale + grid-connected rooftop + hybrid solar component + off-grid.
-          FY25 total: ${(COMMISSION_TREND_META.fy25Total/1000).toFixed(1)} GW (official: ${(COMMISSION_TREND_META.fy25Official/1000).toFixed(2)} GW) ·
-          FY26 total: ${(COMMISSION_TREND_META.fy26Total/1000).toFixed(1)} GW (official: ${(COMMISSION_TREND_META.fy26Official/1000).toFixed(2)} GW) ·
-          Cumulative at Mar 2026: ${(COMMISSION_TREND_META.latestCumulative/1000).toFixed(2)} GW
+          ${trend && trend.mode === 'seed' ? `
+            FY25 total: ${(COMMISSION_TREND_META.fy25Total/1000).toFixed(1)} GW (official: ${(COMMISSION_TREND_META.fy25Official/1000).toFixed(2)} GW) ·
+            FY26 total: ${(COMMISSION_TREND_META.fy26Total/1000).toFixed(1)} GW (official: ${(COMMISSION_TREND_META.fy26Official/1000).toFixed(2)} GW) ·
+            Cumulative at Mar 2026: ${(COMMISSION_TREND_META.latestCumulative/1000).toFixed(2)} GW
+          ` : `
+            ${(trend && trend.commissioned ? trend.commissioned.length : 0)} confirmed quarter(s) from live primary-source fetch.
+          `}
         </div>
         <div style="margin-top:8px;padding:6px 0;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · MNRE / PIB</span>
+          ${modeChip(trend ? trend.mode : 'unavailable')}
           <span class="chart-source">
             <a href="https://mnre.gov.in/en/physical-progress/" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">MNRE Physical Progress</a>
             · PIB official FY releases ·
             Mercom India + JMK Research (citing CEA/MNRE) for interim quarter-end anchors ·
-            Data cutoff: ${COMMISSION_TREND_META.cutoffDate}
+            ${refreshLine}
           </span>
         </div>
       </div>
@@ -103,46 +144,54 @@ function initExecutionTab() {
 
   <!-- State Commissioning + Developer Execution -->
   <div class="grid-2 mb-6">
-    <!-- State Commissioning — REAL DATA (MNRE state-wise PDFs FY26) -->
+    <!-- State Commissioning — LIVE-first, SEED-fallback (MNRE state-wise PDFs) -->
     <div class="card">
       <div class="card-header">
         <div>
-          <div class="card-title">State-Wise Commissioning (${STATE_COMMISSION_META.fy})</div>
+          <div class="card-title">State-Wise Commissioning (${stateComm ? stateComm.fy || 'FY' : '—'})</div>
           <div class="card-subtitle">
             Solar MW newly commissioned by state ·
-            ${STATE_COMMISSION_META.period} ·
-            ${STATE_COMMISSION_META.fy26Total.toLocaleString()} MW total
+            ${stateComm ? (stateComm.priorDate || '—') + ' → ' + (stateComm.latestDate || '—') : '—'} ·
+            ${stateComm && stateComm.mw ? stateComm.mw.reduce((a,b)=>a+b,0).toLocaleString() + ' MW total' : '—'} ·
+            ${stateComm ? (stateComm.mode === 'live' ? 'Live' : 'Seed') + ' · as of ' + (stateComm.asOfDate || '—') : 'Unavailable'}
           </div>
         </div>
-        <span class="source-chip manual"
-              title="Mar 2026: MNRE state-wise PDF (directly fetched). Mar 2025: MNRE RE Stats 2024-25 (top 5 RE states) + MNRE Sep 2024 archive + interpolation.">
-          <i class="fa-solid fa-file-arrow-down"></i> REAL · MNRE
-        </span>
+        ${modeChip(stateComm ? stateComm.mode : 'unavailable')}
       </div>
       <div class="card-body">
         <div class="canvas-wrap" style="height:220px">
           <canvas id="chartStateCommission"></canvas>
         </div>
         <div style="margin-top:16px">
-          ${STATE_COMMISSION_ROWS.map(s =>
-            Components.stateBar(s.state, s.fy26Mw.toLocaleString(), (s.fy26Mw / STATE_COMMISSION_ROWS[0].fy26Mw * 100), s.color, 'MW')
-          ).join('')}
+          ${stateComm && stateComm.rows ? (
+            stateComm.mode === 'live'
+              ? stateComm.rows.map((r, i) =>
+                  Components.stateBar(r.state, r.fyYtdMW.toLocaleString(), (r.fyYtdMW / stateComm.rows[0].fyYtdMW * 100), stateComm.colors[i] || '#94a3b8', 'MW')
+                ).join('')
+              : stateComm.rows.map(s =>
+                  Components.stateBar(s.state, s.fy26Mw.toLocaleString(), (s.fy26Mw / stateComm.rows[0].fy26Mw * 100), s.color, 'MW')
+                ).join('')
+          ) : ''}
         </div>
         <div style="margin-top:12px;padding:10px 12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:7px;font-size:10px;color:var(--text-secondary);line-height:1.7">
           <strong style="color:var(--accent-blue)">Method:</strong>
-          FY26 addition = Mar 2026 state solar (exact, MNRE PDF) − Mar 2025 baseline.
-          Tier B (${STATE_COMMISSION_META.tierBStates}): Mar 2025 from MNRE RE Statistics 2024-25 solar % of RE total.
-          Tier C (${STATE_COMMISSION_META.tierCStates}): Mar 2025 interpolated from MNRE Sep 2024 archive + national FY26/FY25-H2 growth ratio.
-          National FY26 total: ${(STATE_COMMISSION_META.fy26Total/1000).toFixed(2)} GW (confirmed).
-          State values sum to national total; state distribution for non-top-5 states carries ±15–25% uncertainty.
+          ${stateComm && stateComm.mode === 'live' ? `
+            Per-state FY YTD = (latest cumulative solar) − (prior FY-end cumulative solar), both per MNRE state-wise publication.
+            Only states with both endpoints confirmed from primary source are included.
+          ` : `
+            FY26 addition = Mar 2026 state solar (exact, MNRE PDF) − Mar 2025 baseline.
+            Tier B (${STATE_COMMISSION_META.tierBStates}): Mar 2025 from MNRE RE Statistics 2024-25 solar % of RE total.
+            Tier C (${STATE_COMMISSION_META.tierCStates}): Mar 2025 interpolated from MNRE Sep 2024 archive + national FY26/FY25-H2 growth ratio.
+            National FY26 total: ${(STATE_COMMISSION_META.fy26Total/1000).toFixed(2)} GW (confirmed).
+            State distribution for non-top-5 states carries ±15–25% uncertainty.
+          `}
         </div>
         <div style="margin-top:8px;padding:6px 0;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · MNRE</span>
+          ${modeChip(stateComm ? stateComm.mode : 'unavailable')}
           <span class="chart-source">
-            Mar 2026:
-            <a href="${STATE_COMMISSION_META.pdfUrl}" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">MNRE state-wise PDF</a>
-            · Mar 2025: MNRE RE Statistics 2024-25 + Sep 2024 archive ·
-            Data cutoff: ${STATE_COMMISSION_META.cutoffDate}
+            <a href="https://mnre.gov.in/en/physical-progress/" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">MNRE Physical Progress</a>
+            ${stateComm && stateComm.mode === 'seed' ? `· <a href="${STATE_COMMISSION_META.pdfUrl}" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">MNRE state-wise PDF (Mar 2026)</a>` : ''}
+            · ${refreshLine}
           </span>
         </div>
       </div>
@@ -299,19 +348,24 @@ function initExecutionTab() {
   `;
 
   requestAnimationFrame(() => {
-    // Commission trend — REAL DATA from COMMISSION_TREND_DATA
-    Charts.bar('chartCommission', COMMISSION_TREND_DATA.labels, [
-      { label: 'Commissioned MW (Solar)', data: COMMISSION_TREND_DATA.commissioned, color: '#22c55e' }
-    ], { yLabel: 'MW' });
+    // Commission trend — live-first, seed-fallback
+    if (trend && trend.labels && trend.commissioned && trend.commissioned.length) {
+      Charts.bar('chartCommission', trend.labels, [
+        { label: 'Commissioned MW (Solar) · ' + (trend.mode === 'live' ? 'Live' : 'Seed'),
+          data: trend.commissioned, color: '#22c55e' }
+      ], { yLabel: 'MW' });
+    }
 
     // Pipeline chart — DATA UNAVAILABLE: cea.nic.in fully blocked by robots.txt; no chartPipeline canvas rendered
 
-    // State donut — REAL DATA from STATE_COMMISSION_DATA (FY26)
-    Charts.donut('chartStateCommission',
-      STATE_COMMISSION_DATA.states,
-      STATE_COMMISSION_DATA.mw,
-      STATE_COMMISSION_DATA.colors
-    );
+    // State donut — live-first, seed-fallback
+    if (stateComm && stateComm.states && stateComm.mw && stateComm.mw.length) {
+      Charts.donut('chartStateCommission',
+        stateComm.states,
+        stateComm.mw,
+        stateComm.colors
+      );
+    }
   });
 }
 

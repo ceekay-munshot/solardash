@@ -51,14 +51,13 @@ const EXEC_BLOCKS = [
   {
     id:     'kpi-row',
     title:  'Execution KPIs (4 cards)',
-    status: EXEC_BLOCK_STATUS.MOCK,
-    dataFile: 'js/mock-data.js (MOCK.execution.kpis)',
+    status: EXEC_BLOCK_STATUS.MOCK,   // partial: only "Commissioned" is wired in step 2
+    dataFile: 'js/mock-data.js (MOCK.execution.kpis) + js/real-data-execution-live.js (commissioned only)',
     sources: [
       'https://mnre.gov.in/en/physical-progress/',
-      'https://cea.nic.in/rpm/plant-wise-details-of-renewable-energy-projects/?lang=en',
     ],
-    loader: null,  // step 2 will add a loader that derives from COMMISSION_TREND_DATA + MNRE UC anchor
-    notes:  '3 of 4 KPIs derivable from existing real data (commissioned, UC@84.19 GW Dec-24, avg lag); "delayed MW" needs separate sourcing.',
+    loader: execLoadCommissionedKPI,  // covers the Commissioned KPI only
+    notes:  'Only the "Commissioned Capacity (FY YTD)" card is live-wired in step 2. UC / Delayed / Avg-Lag KPIs remain MOCK for later steps.',
   },
   {
     id:     'chart-commission-trend',
@@ -158,34 +157,56 @@ const EXEC_REFRESH_STATE = {
 };
 
 /* ───────────────────────────────────────────────────────────────────────────
-   STUB LOADERS (step 1 only — no network I/O)
-   Each loader validates the currently in-memory data for its block. Later
-   steps replace each body with a real fetch/derive path.
+   LOADERS (step 2)
+   The three REAL blocks share ONE live API call per refresh click
+   (run-scoped cache in real-data-execution-live.js → execLiveOnce()).
+   If EXEC_API_KEY is empty, the call throws NO_API_KEY and the loader
+   records "error"; the block stays on SEED without pretending to be live.
    ─────────────────────────────────────────────────────────────────────── */
 
 async function execLoadCommissionTrend() {
-  // Step 2+ will replace with a real MNRE fetch path (API-keyed or snapshot).
   if (typeof COMMISSION_TREND_DATA !== 'object' || !Array.isArray(COMMISSION_TREND_DATA.labels)) {
-    throw new Error('COMMISSION_TREND_DATA not loaded');
+    throw new Error('COMMISSION_TREND_DATA (seed) not loaded');
   }
-  if (COMMISSION_TREND_DATA.labels.length !== COMMISSION_TREND_DATA.commissioned.length) {
-    throw new Error('COMMISSION_TREND_DATA labels/values length mismatch');
+  if (typeof execLiveOnce === 'function' && EXEC_API_KEY && EXEC_API_KEY.trim()) {
+    const live = await execLiveOnce();
+    const n = live && live.commissionTrend && live.commissionTrend.quarters
+      ? live.commissionTrend.quarters.length : 0;
+    return { source: 'live', quarters: n, asOf: live && live.asOfDate };
   }
-  return { rows: COMMISSION_TREND_DATA.labels.length, asOf: COMMISSION_TREND_META.cutoffDate };
+  return { source: 'seed', quarters: COMMISSION_TREND_DATA.labels.length, asOf: COMMISSION_TREND_META.cutoffDate };
 }
 
 async function execLoadStateCommission() {
   if (typeof STATE_COMMISSION_DATA !== 'object' || !Array.isArray(STATE_COMMISSION_DATA.states)) {
-    throw new Error('STATE_COMMISSION_DATA not loaded');
+    throw new Error('STATE_COMMISSION_DATA (seed) not loaded');
   }
-  return { rows: STATE_COMMISSION_DATA.states.length, asOf: STATE_COMMISSION_META.cutoffDate };
+  if (typeof execLiveOnce === 'function' && EXEC_API_KEY && EXEC_API_KEY.trim()) {
+    const live = await execLiveOnce();
+    const n = live && live.stateCommission && live.stateCommission.states
+      ? live.stateCommission.states.length : 0;
+    return { source: 'live', states: n, asOf: live && live.stateCommission && live.stateCommission.latestDate };
+  }
+  return { source: 'seed', states: STATE_COMMISSION_DATA.states.length, asOf: STATE_COMMISSION_META.cutoffDate };
 }
 
 async function execLoadDeveloperRanking() {
   if (!Array.isArray(DEVELOPER_ROWS) || DEVELOPER_ROWS.length === 0) {
     throw new Error('DEVELOPER_ROWS not loaded');
   }
-  return { rows: DEVELOPER_ROWS.length, asOf: DEVELOPER_META.dataAsOf };
+  return { source: 'seed', rows: DEVELOPER_ROWS.length, asOf: DEVELOPER_META.dataAsOf };
+}
+
+/* Commissioned-KPI derivation — same live bundle, no extra call */
+async function execLoadCommissionedKPI() {
+  if (typeof execLiveOnce === 'function' && EXEC_API_KEY && EXEC_API_KEY.trim()) {
+    const live = await execLiveOnce();
+    if (live && live.commissioned) {
+      return { source: 'live', fyYtdMW: live.commissioned.fyYtdMW, asOf: live.asOfDate };
+    }
+  }
+  if (typeof COMMISSION_TREND_META === 'undefined') throw new Error('seed unavailable');
+  return { source: 'seed', fyYtdMW: COMMISSION_TREND_META.fy26Total, asOf: COMMISSION_TREND_META.cutoffDate };
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
@@ -197,6 +218,9 @@ async function refreshExecutionTab(opts = {}) {
   const log = opts.log !== false;
   const t0 = performance.now();
   EXEC_REFRESH_STATE.lastRunStartedAt = new Date();
+
+  // Share a single live API call across the 3 real-block loaders.
+  if (typeof execResetLiveRun === 'function') execResetLiveRun();
 
   const tasks = EXEC_BLOCKS.map(async (block) => {
     const state = EXEC_REFRESH_STATE.byBlock[block.id];
