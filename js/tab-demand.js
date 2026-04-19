@@ -77,7 +77,7 @@ function initDemandTab() {
             <th style="width:160px">vs Top State</th>
           </tr></thead>
           <tbody>
-            ${MNRE_STATE_CAPACITY.map((s, i) => `
+            ${MNRE_STATE_CAPACITY.slice(0, 10).map((s, i) => `
             <tr>
               <td>${Components.rankBadge(s.rank)}</td>
               <td class="primary">${s.state}</td>
