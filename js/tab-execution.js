@@ -10,10 +10,12 @@ function initExecutionTab() {
   const d = MOCK.execution;
   const src = DATA_SOURCES.execution;
 
-  // Effective data (live-first, seed-fallback) for the three wired blocks.
+  // Effective data (live-first, seed-fallback) for wired blocks.
   const kpiComm   = (typeof execGetCommissionedKPI === 'function') ? execGetCommissionedKPI() : null;
   const trend     = (typeof execGetCommissionTrend === 'function') ? execGetCommissionTrend() : null;
   const stateComm = (typeof execGetStateCommission === 'function') ? execGetStateCommission() : null;
+  const ucPipe    = (typeof execGetUcPipeline === 'function') ? execGetUcPipeline() : null;
+  const devRank   = (typeof execGetDeveloperRanking === 'function') ? execGetDeveloperRanking() : null;
   const modeChip  = (m) => (typeof execModeChip === 'function') ? execModeChip(m) : '';
   const refreshLine = (typeof execRefreshStatusText === 'function') ? execRefreshStatusText() : '';
 
@@ -99,45 +101,58 @@ function initExecutionTab() {
         </div>
       </div>
     </div>
-    <!-- Pipeline chart: CEA quarterly under-construction PDFs fully blocked by robots.txt -->
+    <!-- Under-Construction Solar Pipeline — live-first; truthful UNAVAILABLE state when source blocked -->
     <div class="card">
       <div class="card-header">
         <div>
           <div class="card-title">Under-Construction Solar Pipeline</div>
-          <div class="card-subtitle">Quarterly total solar MW under active construction</div>
+          <div class="card-subtitle">
+            Quarterly total solar MW under active construction ·
+            ${ucPipe && ucPipe.mode === 'live'
+              ? 'Live · as of ' + (ucPipe.asOfDate || '—')
+              : 'Unavailable — primary source blocked'}
+          </div>
         </div>
-        <span class="source-chip" style="background:rgba(239,68,68,0.1);color:#ef4444;border-color:rgba(239,68,68,0.25)">
-          <i class="fa-solid fa-ban"></i> DATA UNAVAILABLE
-        </span>
+        ${modeChip(ucPipe ? ucPipe.mode : 'unavailable')}
       </div>
       <div class="card-body">
+        ${ucPipe && ucPipe.mode === 'live' ? `
+        <div class="canvas-wrap" style="height:240px"><canvas id="chartUcPipeline"></canvas></div>
+        <div style="margin-top:10px;padding:10px 12px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:7px;font-size:10px;color:var(--text-secondary);line-height:1.7">
+          <strong style="color:#f59e0b">Source:</strong>
+          CEA under-construction RE reports / CEA plant-wise — solar-only line, primary-source confirmed per quarter.
+          ${ucPipe.quarters.length} confirmed quarter${ucPipe.quarters.length === 1 ? '' : 's'}.
+        </div>
+        ` : `
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:240px;gap:14px;padding:20px">
           <div style="width:48px;height:48px;border-radius:50%;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center">
             <i class="fa-solid fa-lock" style="color:#ef4444;font-size:20px"></i>
           </div>
-          <div style="text-align:center;max-width:380px">
+          <div style="text-align:center;max-width:420px">
             <div style="font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:8px">
-              Primary source blocked — not wiretable from public access
+              Primary source blocked — quarterly solar series not publishable
             </div>
             <div style="font-size:11px;color:var(--text-secondary);line-height:1.7">
-              CEA quarterly under-construction RE reports (cea.nic.in) are the only official source for this
-              quarterly solar pipeline series. All CEA paths — pages and direct PDF URLs — return
-              ROBOTS_DISALLOWED. Only one confirmed solar-specific under-construction figure exists from
-              accessible public sources: MNRE @mnreindia (Jan 2025) — 84,190 MW solar under
-              implementation as on 31 Dec 2024. A single point cannot form a quarterly series.
+              CEA under-construction RE quarterly reports are the only official source for this series.
+              All CEA paths (pages and direct PDFs) return ROBOTS_DISALLOWED. The live refresh attempts the
+              allowed primary sources (CEA UC quarterly, CEA plant-wise) and the validator rejects any series
+              with fewer than two confirmed quarterly points — faking a trend from a single anchor is not
+              permitted. Only one confirmed solar-specific figure is public today:
+              ${ucPipe && ucPipe.confirmedAnchor
+                ? `<strong style="color:var(--text-primary)">${(ucPipe.confirmedAnchor.mw/1000).toFixed(2)} GW</strong> as on <strong style="color:var(--text-primary)">${ucPipe.confirmedAnchor.date}</strong> (${ucPipe.confirmedAnchor.source}).`
+                : '—'}
             </div>
           </div>
         </div>
         <div style="padding:10px 12px;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:7px;font-size:10px;color:var(--text-secondary);line-height:1.7">
-          <strong style="color:#ef4444">Verification log:</strong>
-          cea.nic.in/rpm/quarterly-report → ROBOTS_DISALLOWED ·
-          cea.nic.in/rpm/ → ROBOTS_DISALLOWED ·
+          <strong style="color:#ef4444">Attempt log:</strong>
+          <a href="https://cea.nic.in/rpm/quarterly-report-on-under-construction-renewable-energy-projects/?lang=en" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">CEA UC quarterly report</a> → ROBOTS_DISALLOWED ·
+          <a href="https://cea.nic.in/rpm/plant-wise-details-of-renewable-energy-projects/?lang=en" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">CEA plant-wise</a> → ROBOTS_DISALLOWED ·
           direct PDF wp-content/uploads/rpm_division/ → ROBOTS_DISALLOWED ·
-          Scribd Jun 2025 copy → paywalled, no solar breakdown ·
-          CEA snippet data (Mar/Sep 2025) → wind and hybrid MW visible in snippets but solar MW cut off ·
-          MNRE PIB annual → total RE pipeline only, not solar-specific ·
-          One confirmed solar UC point: 84.19 GW as on 31 Dec 2024 (MNRE @mnreindia)
+          CEA snippet data → wind + hybrid visible, solar MW cut off ·
+          ${refreshLine}
         </div>
+        `}
       </div>
     </div>
   </div>
@@ -197,73 +212,77 @@ function initExecutionTab() {
       </div>
     </div>
 
-    <!-- Developer Commissioning Conversion Ranking — REAL DATA -->
+    <!-- Developer Commissioning Conversion Ranking — live-first, seed-fallback (6 columns) -->
     <div class="card" style="overflow:hidden">
       <div class="card-header">
         <div>
           <div class="card-title">Developer Commissioning Conversion Ranking</div>
           <div class="card-subtitle">
-            Commissioned RE capacity vs. contracted portfolio ·
-            Sorted by Commissioned MW · ${DEVELOPER_META.developersWithConversion}/4 developers have full conversion data
+            Commissioned solar/RE capacity vs. total awarded portfolio · Sorted by Commissioned MW ·
+            ${devRank && devRank.rows ? devRank.rows.length : 0} developer${devRank && devRank.rows && devRank.rows.length === 1 ? '' : 's'} ·
+            ${devRank ? (devRank.mode === 'live' ? 'Live' : 'Seed') + ' · as of ' + (devRank.asOfDate || '—') : 'Unavailable'}
           </div>
         </div>
-        <span class="source-chip manual"
-              title="BSE Reg-30 / SEC 6-K mandatory regulatory disclosures. CEA plant-wise (primary source) blocked by robots.txt.">
-          <i class="fa-solid fa-file-arrow-down"></i> REAL · BSE/SEC
-        </span>
+        ${modeChip(devRank ? devRank.mode : 'unavailable')}
       </div>
       <div class="card-body" style="padding:0">
         <div style="overflow-x:auto">
-          <table class="data-table" style="min-width:700px">
+          <table class="data-table" style="min-width:760px">
             <thead><tr>
               <th style="width:42px">Rank</th>
               <th>Developer</th>
-              <th class="number" title="Total contracted portfolio (PPAs+LoAs) per official quarterly disclosure. N/A where not confirmed.">Portfolio MW</th>
-              <th class="number" title="Operational/commercially commissioned RE capacity">Commissioned MW</th>
-              <th class="number" title="Portfolio MW minus Commissioned MW (derived)">Under Const.</th>
-              <th class="number" title="Commissioned / Portfolio × 100. Shown only where both figures confirmed from same official source.">Conv. %</th>
-              <th class="number" style="font-size:10px">Latest Quarter</th>
+              <th class="number" title="Total Awarded MW = sum of awarded tender capacities + signed PPAs, per official filings. Blank if not confirmed from same source.">Total Awarded MW</th>
+              <th class="number" title="Operational / commercially commissioned capacity per official filing.">Commissioned MW</th>
+              <th class="number" title="Under Construction MW = Total Awarded − Commissioned, only when both are confirmed from the same official source.">Under Construction MW</th>
+              <th class="number" title="Commissioning Conversion % = Commissioned / Total Awarded × 100. Shown ONLY where both figures come from the same official source.">Commissioning Conversion %</th>
+              <th class="number" style="font-size:10px">Latest Commissioning / Active Quarter</th>
             </tr></thead>
             <tbody>
-              ${DEVELOPER_ROWS.map(dev => {
-                const portDisp = dev.portfolioMW ? dev.portfolioMW.toLocaleString() + ' MW' : '<span style="color:var(--text-muted)">—</span>';
-                const ucDisp   = dev.ucMW ? dev.ucMW.toLocaleString() + ' MW'  : '<span style="color:var(--text-muted)">—</span>';
-                const convDisp = dev.conversionPct !== null
-                  ? `<span style="font-weight:700;color:${dev.conversionPct>=70?'var(--status-positive)':dev.conversionPct>=50?'var(--status-warning)':'var(--status-negative)'}">${dev.conversionPct.toFixed(1)}%</span>`
+              ${(devRank && devRank.rows && devRank.rows.length ? devRank.rows : []).map(r => {
+                const fmt = (v) => v == null
+                  ? '<span style="color:var(--text-muted)">—</span>'
+                  : (v >= 1000 ? (v/1000).toFixed(2) + ' GW' : v.toLocaleString() + ' MW');
+                const awarded = fmt(r.totalAwardedMW);
+                const comm    = fmt(r.commissionedMW);
+                const uc      = fmt(r.underConstructionMW);
+                const conv    = r.conversionPct != null
+                  ? `<span style="font-weight:700;color:${r.conversionPct>=70?'var(--status-positive)':r.conversionPct>=50?'var(--status-warning)':'var(--status-negative)'}">${r.conversionPct.toFixed(1)}%</span>`
                   : '<span style="color:var(--text-muted);font-size:10px">—</span>';
-                const solarTag = dev.commissionedSolarMW
-                  ? `<div style="font-size:10px;color:var(--text-secondary);margin-top:2px">${(dev.commissionedSolarMW/1000).toFixed(1)} GW solar confirmed</div>`
-                  : (dev.commissionedNote.includes('solar-specific') ? '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">solar split not confirmed</div>' : '');
+                const urlBits = (r.sourceUrls || []).slice(0, 2).map(u =>
+                  `<a href="${u}" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none;font-size:10px">source</a>`
+                ).join(' · ');
                 return `<tr>
-                  <td>${Components.rankBadge(dev.rank)}</td>
+                  <td>${Components.rankBadge(r.rank)}</td>
                   <td>
-                    <div style="font-weight:600;color:var(--text-primary)">${dev.developer}</div>
-                    <div style="font-size:10px;color:var(--text-muted)">${dev.ticker}</div>
-                    ${solarTag}
+                    <div style="font-weight:600;color:var(--text-primary)">${r.developer}</div>
+                    <div style="font-size:10px;color:var(--text-muted)">${r.ticker || ''}</div>
+                    ${urlBits ? `<div style="font-size:10px;margin-top:2px">${urlBits}</div>` : ''}
                   </td>
-                  <td class="number mono" style="font-size:11px">${portDisp}</td>
-                  <td class="number mono" style="font-weight:700;color:${dev.color}">${(dev.commissionedMW/1000).toFixed(1)} GW</td>
-                  <td class="number mono" style="font-size:11px">${ucDisp}</td>
-                  <td class="number">${convDisp}</td>
-                  <td class="number" style="font-size:10px;color:var(--text-secondary)">${dev.latestQuarter}</td>
+                  <td class="number mono" style="font-size:11px">${awarded}</td>
+                  <td class="number mono" style="font-weight:700">${comm}</td>
+                  <td class="number mono" style="font-size:11px">${uc}</td>
+                  <td class="number">${conv}</td>
+                  <td class="number" style="font-size:10px;color:var(--text-secondary)">${r.latestQuarter || '—'}</td>
                 </tr>`;
-              }).join('')}
+              }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px 0">No developer rows available</td></tr>`}
             </tbody>
           </table>
         </div>
         <div style="padding:10px 16px 12px;background:rgba(59,130,246,0.04);border-top:1px solid var(--border-subtle);font-size:10px;color:var(--text-secondary);line-height:1.7">
-          <strong style="color:var(--accent-blue)">Sort basis:</strong> ${DEVELOPER_META.sortBasis} — ${DEVELOPER_META.sortReason}<br>
-          <strong style="color:var(--accent-blue)">Coverage:</strong> ${DEVELOPER_META.coverageNote}<br>
-          <strong style="color:#ef4444">CEA blocked:</strong> ${DEVELOPER_META.ceaBlockedNote}
+          <strong style="color:var(--accent-blue)">Rules:</strong>
+          Sort by Commissioned MW descending ·
+          Total Awarded MW, Under Construction MW, and Conversion % are shown ONLY where confirmed from the same official filing — blanks where mapping is weak or mixed-source ·
+          Where a developer's solar split is not separately disclosed, the figure reflects total RE and the source note indicates so ·
+          Sources restricted to CEA plant-wise, SECI award docs, BSE/NSE filings, and official IR pages · No Mercom / JMK / trade press used for this block
         </div>
         <div style="padding:8px 16px;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · BSE/SEC</span>
+          ${modeChip(devRank ? devRank.mode : 'unavailable')}
           <span class="chart-source">
-            AGEL: <a href="https://www.adani.com/newsroom/media-releases/adani-green-energy-delivers-on-5-gw-commitment-in-fy26" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">official press release (Apr 2026)</a> ·
-            ReNew: <a href="https://investor.renew.com" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">SEC 6-K + Q3 FY26 earnings</a> ·
-            NTPC Green: BSE filing Q2 FY26 + Reg-30 notices ·
-            SJVN: BSE Reg-30 Bikaner commissioning + Q2 FY26 concall ·
-            Data cutoff: ${DEVELOPER_META.dataAsOf}
+            <a href="https://cea.nic.in/rpm/plant-wise-details-of-renewable-energy-projects/?lang=en" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">CEA plant-wise</a> ·
+            <a href="https://www.seci.co.in/tenders" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">SECI tenders</a> ·
+            <a href="https://www.bseindia.com/corporates/ann.html" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">BSE announcements</a> ·
+            <a href="https://www.nseindia.com/companies-listing/corporate-filings-announcements" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">NSE filings</a> ·
+            official IR pages · ${refreshLine}
           </span>
         </div>
       </div>
@@ -356,7 +375,13 @@ function initExecutionTab() {
       ], { yLabel: 'MW' });
     }
 
-    // Pipeline chart — DATA UNAVAILABLE: cea.nic.in fully blocked by robots.txt; no chartPipeline canvas rendered
+    // Under-Construction Solar Pipeline — live-only. When unavailable, the card
+    // shows the truthful UNAVAILABLE panel above and no canvas is rendered.
+    if (ucPipe && ucPipe.mode === 'live' && ucPipe.labels && ucPipe.mw) {
+      Charts.bar('chartUcPipeline', ucPipe.labels, [
+        { label: 'Solar UC MW · Live', data: ucPipe.mw, color: '#f59e0b' }
+      ], { yLabel: 'MW' });
+    }
 
     // State donut — live-first, seed-fallback
     if (stateComm && stateComm.states && stateComm.mw && stateComm.mw.length) {

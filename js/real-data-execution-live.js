@@ -47,15 +47,28 @@ let _EXEC_LIVE_INFLIGHT   = null;  // shared Promise within a single refresh run
 /* ─── Reset per-run cache (orchestrator calls at start of a refresh click) ─ */
 function execResetLiveRun() { _EXEC_LIVE_INFLIGHT = null; }
 
-/* ─── System prompt: tight, strict, solar-only ────────────────────────────── */
-const _EXEC_REFRESH_SYSTEM = `You are a market-data assistant for India's solar sector. Search official public sources and return the latest solar commissioning figures as one strict JSON object.
+/* ─── System prompt: tight, strict, solar-only ──────────────────────────────
+   Five blocks in one JSON object; each block can be independently null when
+   unsourceable. Per-block source-restriction rules are ENFORCED inside the
+   schema text so the model does not cross them.
+   ─────────────────────────────────────────────────────────────────────── */
+const _EXEC_REFRESH_SYSTEM = `You are a market-data assistant for India's solar sector. Search official public sources and return the latest solar figures as one strict JSON object.
 
-PRIORITY OFFICIAL SOURCES:
-1. MNRE Physical Progress: https://mnre.gov.in/en/physical-progress/
-2. MNRE state-wise installed-capacity PDFs (linked from the page above)
-3. PIB press releases: https://pib.gov.in
-4. MNRE official @mnreindia posts for intra-quarter updates
-5. Trade press (Mercom India, JMK Research, Bridge to India) ONLY when the item explicitly cites MNRE/CEA/PIB
+PRIORITY OFFICIAL SOURCES (per block — read carefully):
+A. commissioned / commissionTrend / stateCommission:
+   1. MNRE Physical Progress: https://mnre.gov.in/en/physical-progress/
+   2. MNRE state-wise installed-capacity PDFs (linked from page above)
+   3. PIB press releases: https://pib.gov.in
+   4. MNRE official @mnreindia posts for intra-quarter updates
+   5. Trade press (Mercom India, JMK Research, Bridge to India) ONLY when the item explicitly cites MNRE/CEA/PIB
+B. ucPipeline / developerRanking:
+   1. CEA UC RE reports: https://cea.nic.in/rpm/quarterly-report-on-under-construction-renewable-energy-projects/?lang=en
+   2. CEA plant-wise RE projects: https://cea.nic.in/rpm/plant-wise-details-of-renewable-energy-projects/?lang=en
+   3. SECI tenders / result docs: https://www.seci.co.in/tenders
+   4. BSE announcements: https://www.bseindia.com/corporates/ann.html
+   5. NSE filings: https://www.nseindia.com/companies-listing/corporate-filings-announcements
+   6. Official company investor-relations pages / press releases
+   DO NOT use Mercom, JMK, Bridge to India, SolarQuarter, RenewableWatch, or any trade-press source for ucPipeline or developerRanking. Only primary or regulator-published sources. If CEA pages return robots-disallowed or no usable solar breakdown, return that block as null — do not substitute trade-press.
 
 SCOPE: SOLAR ONLY. All-solar per MNRE headline (utility-scale + grid-connected rooftop + hybrid solar component + off-grid). DO NOT add wind, bioenergy, small hydro, or large hydro to any number.
 
@@ -65,51 +78,21 @@ SCHEMA:
 {
   "asOfDate": "YYYY-MM-DD",
   "fetchedFrom": ["primary source URL", ...],
-  "commissioned": {
-    "currentFY": "FY26" | "FY27",
-    "fyYtdMW": <number>,
-    "cumulativeMW": <number>,
-    "priorFYEndMW": <number>,
-    "priorFYEndDate": "YYYY-MM-DD",
-    "confidence": "high" | "medium" | "low",
-    "sourceNote": "short string"
-  } | null,
-  "commissionTrend": {
-    "quarters": [
-      {
-        "label": "Q1 FY25" | "Q2 FY25" | ...,
-        "periodStart": "YYYY-MM-DD",
-        "periodEnd": "YYYY-MM-DD",
-        "mw": <number>,
-        "confidence": "high" | "medium" | "low",
-        "sourceNote": "short string"
-      }
-    ]
-  } | null,
-  "stateCommission": {
-    "currentFY": "FY26" | "FY27",
-    "priorFYEndDate": "YYYY-MM-DD",
-    "latestDate": "YYYY-MM-DD",
-    "states": [
-      {
-        "state": "Rajasthan",
-        "fyYtdMW": <number>,
-        "latestCumulativeMW": <number>,
-        "priorFYEndMW": <number>,
-        "tier": "A" | "B" | "C",
-        "sourceNote": "short string"
-      }
-    ]
-  } | null
+  "commissioned": { "currentFY": "FY26"|"FY27", "fyYtdMW": <number>, "cumulativeMW": <number>, "priorFYEndMW": <number>, "priorFYEndDate": "YYYY-MM-DD", "confidence": "high"|"medium"|"low", "sourceNote": "short" } | null,
+  "commissionTrend": { "quarters": [ { "label": "Q1 FY25"|..., "periodStart": "YYYY-MM-DD", "periodEnd": "YYYY-MM-DD", "mw": <number>, "confidence": "high"|"medium"|"low", "sourceNote": "short" } ] } | null,
+  "stateCommission": { "currentFY": "FY26"|"FY27", "priorFYEndDate": "YYYY-MM-DD", "latestDate": "YYYY-MM-DD", "states": [ { "state": "Rajasthan", "fyYtdMW": <number>, "latestCumulativeMW": <number>, "priorFYEndMW": <number>, "tier": "A"|"B"|"C", "sourceNote": "short" } ] } | null,
+  "ucPipeline": { "quarters": [ { "label": "Q2 FY26"|..., "periodEnd": "YYYY-MM-DD", "mw": <number>, "confidence": "high"|"medium", "sourceNote": "short", "sourceUrl": "<CEA url>" } ] } | null,
+  "developerRanking": { "asOfDate": "YYYY-MM-DD", "developers": [ { "developer": "Adani Green Energy", "ticker": "NSE: ADANIGREEN", "totalAwardedMW": <number>|null, "commissionedMW": <number>|null, "underConstructionMW": <number>|null, "conversionPct": <number>|null, "latestQuarter": "Q4 FY26"|"Q3 FY26"|..., "sourceUrls": ["<BSE/NSE/IR URL>", ...], "sourceNote": "short" } ] } | null
 }
 
-HARD RULES:
-- SOLAR ONLY. If a source mixes RE types, extract only the solar line.
-- Include a quarter ONLY when both its endpoints are confirmed by primary source. Omit in-progress quarters.
-- Include a state ONLY when both latestCumulativeMW and priorFYEndMW are confirmed by primary source.
-- confidence: "high" only when derived from a directly fetched MNRE/PIB document; "medium" when from trade-press citing MNRE; "low" otherwise.
+HARD RULES (apply to every block):
+- SOLAR ONLY. If a source mixes RE types, extract only the solar line. If a developer's commissioned / awarded MW cannot be separated into solar, you may report RE-total as commissionedMW BUT set sourceNote to say so explicitly.
+- Include a quarter in commissionTrend or ucPipeline ONLY when its endpoint is confirmed by primary source. Omit in-progress quarters.
+- Include a state ONLY when both endpoints are confirmed by primary source.
+- For developerRanking: include only developers confirmable from official filings. totalAwardedMW, underConstructionMW, conversionPct must each be individually nullable. NEVER compute conversionPct from inconsistent or mixed-source values — return null instead.
+- For ucPipeline, NEVER synthesize a quarterly series from a single anchor point. If fewer than 2 primary-source quarterly points are available, return ucPipeline = null.
 - If a whole block cannot be confirmed, set it to null rather than fabricate.
-- Do not include any non-solar capacity or RE totals.`;
+- Do not include any non-solar capacity or RE totals in the commissioning / trend / state blocks.`;
 
 /* ─── Live refresh: single API call, returns bundle for all 3 blocks ─────── */
 async function execLiveRefresh() {
@@ -195,6 +178,28 @@ function _validateLiveBundle(obj) {
     obj.stateCommission.states.forEach(s => {
       if (typeof s.fyYtdMW !== 'number' || s.fyYtdMW < 0 || s.fyYtdMW > 50000)
         throw new Error('stateCommission.state.fyYtdMW out of plausible range');
+    });
+  }
+  if (obj.ucPipeline && Array.isArray(obj.ucPipeline.quarters)) {
+    if (obj.ucPipeline.quarters.length < 2) {
+      // single-anchor UC cannot form a series; force null to avoid faking
+      obj.ucPipeline = null;
+    } else {
+      obj.ucPipeline.quarters.forEach(q => {
+        if (typeof q.mw !== 'number' || q.mw < 0 || q.mw > 500000)
+          throw new Error('ucPipeline.quarter.mw out of plausible range');
+      });
+    }
+  }
+  if (obj.developerRanking && Array.isArray(obj.developerRanking.developers)) {
+    obj.developerRanking.developers.forEach(d => {
+      ['totalAwardedMW','commissionedMW','underConstructionMW','conversionPct'].forEach(k => {
+        if (d[k] != null) {
+          if (typeof d[k] !== 'number' || d[k] < 0) throw new Error('developer.' + k + ' invalid');
+          if (k === 'conversionPct' && d[k] > 100) throw new Error('developer.conversionPct > 100');
+          if (k !== 'conversionPct' && d[k] > 200000) throw new Error('developer.' + k + ' out of plausible range');
+        }
+      });
     });
   }
 }
@@ -289,6 +294,73 @@ function execGetStateCommission() {
 }
 
 const _PALETTE = ['#f59e0b','#3b82f6','#22c55e','#a855f7','#f97316','#14b8a6','#6366f1','#ec4899','#78716c','#84cc16','#06b6d4','#94a3b8'];
+
+function execGetUcPipeline() {
+  const live = EXEC_LIVE_RESULT && EXEC_LIVE_RESULT.ucPipeline;
+  if (live && Array.isArray(live.quarters) && live.quarters.length >= 2) {
+    return {
+      mode:     'live',
+      labels:   live.quarters.map(q => q.label),
+      mw:       live.quarters.map(q => q.mw),
+      quarters: live.quarters,
+      asOfDate: live.quarters[live.quarters.length - 1].periodEnd || EXEC_LIVE_RESULT.asOfDate,
+    };
+  }
+  // No series possible — truthful UNAVAILABLE state. Surface the single
+  // confirmed anchor point (if known) so the UI can state what IS confirmed
+  // rather than omit it silently.
+  return {
+    mode:     'unavailable',
+    reason:   'CEA quarterly UC reports return robots-disallowed and no ≥2-point solar-only quarterly series is available from the allowed primary sources.',
+    confirmedAnchor: { date: '31 Dec 2024', mw: 84190, source: 'MNRE official @mnreindia post (Jan 2025)' },
+  };
+}
+
+function execGetDeveloperRanking() {
+  // The six required columns:
+  //   rank · developer (+ticker) · totalAwardedMW · commissionedMW
+  //   · underConstructionMW · conversionPct · latestQuarter
+  const live = EXEC_LIVE_RESULT && EXEC_LIVE_RESULT.developerRanking;
+  if (live && Array.isArray(live.developers) && live.developers.length > 0) {
+    const rows = [...live.developers]
+      .filter(d => typeof d.commissionedMW === 'number' && d.commissionedMW > 0)
+      .sort((a, b) => b.commissionedMW - a.commissionedMW)
+      .map((d, i) => ({
+        rank:             i + 1,
+        developer:        d.developer,
+        ticker:           d.ticker || '',
+        totalAwardedMW:   typeof d.totalAwardedMW      === 'number' ? d.totalAwardedMW      : null,
+        commissionedMW:   typeof d.commissionedMW      === 'number' ? d.commissionedMW      : null,
+        underConstructionMW: typeof d.underConstructionMW === 'number' ? d.underConstructionMW : null,
+        conversionPct:    typeof d.conversionPct       === 'number' ? d.conversionPct       : null,
+        latestQuarter:    d.latestQuarter || '',
+        sourceUrls:       Array.isArray(d.sourceUrls) ? d.sourceUrls : [],
+        sourceNote:       d.sourceNote || '',
+      }));
+    return {
+      mode:     'live',
+      asOfDate: live.asOfDate || EXEC_LIVE_RESULT.asOfDate,
+      rows,
+    };
+  }
+  // Seed fallback — remap DEVELOPER_ROWS to the 6-column shape.
+  if (Array.isArray(DEVELOPER_ROWS) && DEVELOPER_ROWS.length > 0) {
+    const rows = DEVELOPER_ROWS.map(d => ({
+      rank:             d.rank,
+      developer:        d.developer,
+      ticker:           d.ticker || '',
+      totalAwardedMW:   typeof d.portfolioMW === 'number' ? d.portfolioMW : null,  // portfolio = PPAs+LoAs = awarded
+      commissionedMW:   typeof d.commissionedMW === 'number' ? d.commissionedMW : null,
+      underConstructionMW: typeof d.ucMW === 'number' ? d.ucMW : null,
+      conversionPct:    typeof d.conversionPct === 'number' ? d.conversionPct : null,
+      latestQuarter:    d.latestQuarter || '',
+      sourceUrls:       d.sourceUrl ? [d.sourceUrl] : [],
+      sourceNote:       d.primarySource || '',
+    }));
+    return { mode: 'seed', asOfDate: DEVELOPER_META.dataAsOf, rows };
+  }
+  return { mode: 'unavailable', rows: [] };
+}
 
 /* ─── Small helpers used by tab-execution.js ─────────────────────────────── */
 function execRefreshStatusText() {

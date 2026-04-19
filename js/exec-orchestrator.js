@@ -73,13 +73,14 @@ const EXEC_BLOCKS = [
   {
     id:     'chart-uc-pipeline',
     title:  'Under-Construction Solar Pipeline',
-    status: EXEC_BLOCK_STATUS.UNAVAILABLE,
-    dataFile: null,
+    status: EXEC_BLOCK_STATUS.REAL,    // attempted via live path; falls back to truthful UNAVAILABLE state
+    dataFile: 'js/real-data-execution-live.js (live ucPipeline; no seed fallback)',
     sources: [
       'https://cea.nic.in/rpm/quarterly-report-on-under-construction-renewable-energy-projects/?lang=en',
+      'https://cea.nic.in/rpm/plant-wise-details-of-renewable-energy-projects/?lang=en',
     ],
-    loader: null,   // never. Primary source is fully blocked.
-    notes:  'CEA quarterly UC reports return ROBOTS_DISALLOWED on every path. Only one confirmed solar UC point exists (MNRE 84.19 GW @ 31 Dec 2024) — insufficient for a quarterly series.',
+    loader: execLoadUcPipeline,
+    notes:  'Live path: Claude API web_search against CEA UC reports / CEA plant-wise. Validator rejects single-point series to prevent a faked trend. If CEA stays robots-disallowed in runtime, the UI shows the truthful UNAVAILABLE state (the single confirmed anchor 84.19 GW @ 31 Dec 2024 is disclosed but no chart is drawn).',
   },
   {
     id:     'chart-state-commission',
@@ -96,13 +97,15 @@ const EXEC_BLOCKS = [
     id:     'table-developer-ranking',
     title:  'Developer Commissioning Conversion Ranking',
     status: EXEC_BLOCK_STATUS.REAL,
-    dataFile: 'js/real-data-developer-commission.js (DEVELOPER_ROWS)',
+    dataFile: 'js/real-data-developer-commission.js (DEVELOPER_ROWS — seed) + js/real-data-execution-live.js (live developerRanking)',
     sources: [
+      'https://cea.nic.in/rpm/plant-wise-details-of-renewable-energy-projects/?lang=en',
+      'https://www.seci.co.in/tenders',
       'https://www.bseindia.com/corporates/ann.html',
       'https://www.nseindia.com/companies-listing/corporate-filings-announcements',
     ],
     loader: execLoadDeveloperRanking,
-    notes:  'BSE Reg-30 + SEC 6-K disclosures. CEA plant-wise (primary source) is blocked — official regulatory disclosures used as the accessible alternative.',
+    notes:  'Live path: Claude API web_search against CEA plant-wise + SECI awards + BSE/NSE filings + official IR pages. No Mercom/JMK. Seed (4 developers) used when live unavailable. 6 columns: Rank, Developer, Total Awarded MW, Commissioned MW, Under Construction MW, Conversion %, Latest Quarter. conversionPct never computed from mixed sources — null where inconsistent.',
   },
   {
     id:     'block-delay-reasons',
@@ -192,9 +195,30 @@ async function execLoadStateCommission() {
 
 async function execLoadDeveloperRanking() {
   if (!Array.isArray(DEVELOPER_ROWS) || DEVELOPER_ROWS.length === 0) {
-    throw new Error('DEVELOPER_ROWS not loaded');
+    throw new Error('DEVELOPER_ROWS (seed) not loaded');
   }
-  return { source: 'seed', rows: DEVELOPER_ROWS.length, asOf: DEVELOPER_META.dataAsOf };
+  if (typeof execLiveOnce === 'function' && EXEC_API_KEY && EXEC_API_KEY.trim()) {
+    const live = await execLiveOnce();
+    const n = live && live.developerRanking && live.developerRanking.developers
+      ? live.developerRanking.developers.length : 0;
+    return { source: n > 0 ? 'live' : 'seed', developers: n || DEVELOPER_ROWS.length,
+             asOf: (live && live.developerRanking && live.developerRanking.asOfDate) || DEVELOPER_META.dataAsOf };
+  }
+  return { source: 'seed', developers: DEVELOPER_ROWS.length, asOf: DEVELOPER_META.dataAsOf };
+}
+
+async function execLoadUcPipeline() {
+  if (typeof execLiveOnce !== 'function' || !EXEC_API_KEY || !EXEC_API_KEY.trim()) {
+    // No key ⇒ no live attempt. UI shows truthful UNAVAILABLE state.
+    return { source: 'unavailable', reason: 'no-api-key', quarters: 0 };
+  }
+  const live = await execLiveOnce();
+  const qs = live && live.ucPipeline && Array.isArray(live.ucPipeline.quarters)
+    ? live.ucPipeline.quarters : [];
+  if (qs.length < 2) {
+    return { source: 'unavailable', reason: 'cea-blocked-or-insufficient', quarters: qs.length };
+  }
+  return { source: 'live', quarters: qs.length, asOf: qs[qs.length - 1].periodEnd };
 }
 
 /* Commissioned-KPI derivation — same live bundle, no extra call */
