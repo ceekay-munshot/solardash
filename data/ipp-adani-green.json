@@ -1,0 +1,48 @@
+{
+  "scrapedAt": "2026-04-19T15:51:41.325Z",
+  "company": "Adani Green",
+  "bseCode": "541450",
+  "nseSymbol": "ADANIGREEN",
+  "sources": {
+    "irPresentations": {
+      "url": "https://www.adanigreenenergy.com/investors/investor-presentations",
+      "ok": true,
+      "fetchedAt": "2026-04-19T15:51:47.272Z",
+      "error": null
+    },
+    "operationalData": {
+      "url": "https://www.adanigreenenergy.com/investor-presentation/Q2_FY25.pdf",
+      "ok": true,
+      "fetchedAt": "2026-04-19T15:51:59.271Z",
+      "error": null
+    },
+    "financials": {
+      "url": "https://www.adanigreenenergy.com/investors/financial-results",
+      "ok": true,
+      "fetchedAt": "2026-04-19T15:52:04.915Z",
+      "error": null
+    },
+    "bseAnnouncements": {
+      "url": "https://www.bseindia.com/corporates/ann.html?scrip=541450&dur=D",
+      "ok": true,
+      "fetchedAt": "2026-04-19T15:52:07.785Z",
+      "error": null
+    },
+    "seci": {
+      "url": "https://www.seci.co.in/tenders",
+      "ok": true,
+      "fetchedAt": "2026-04-19T15:52:09.755Z",
+      "error": null
+    }
+  },
+  "kpi": null,
+  "fin": null,
+  "mix": {
+    "Solar": 60,
+    "Wind": 30,
+    "Hybrid": 10,
+    "FDRE": 0
+  },
+  "cod": null,
+  "ann": null
+}
