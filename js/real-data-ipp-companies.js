@@ -209,17 +209,48 @@ function _mockDataFor(name) {
 
 /* Merge a scraped JSON payload onto the mock shape.
    Any field present in the scraped JSON overrides the mock value.
+   Also carries asOf/source metadata through so the tab can display
+   "as of Q3 FY25 · AGEL IR" in KPI context lines.
    Called per-company when a committed data/ipp-{key}.json exists.         */
 function _mergeWithMock(name, scraped, co) {
   const base  = _mockDataFor(name);
   const color = co ? co.color : base.color;
+
+  // Build merged kpi — scraped fields win; also inject asOf strings as
+  // separate context keys so tab-ipp.js can use them without touching the
+  // value fields that drive the KPI card numbers.
+  let kpi = base.kpi;
+  if (scraped.kpi) {
+    kpi = { ...base.kpi, ...scraped.kpi };
+    // Inject context lines from asOf fields if present
+    if (scraped.kpi.opCapacityAsOf) kpi.opCapacityContext = `as of ${scraped.kpi.opCapacityAsOf} · AGEL IR`;
+    if (scraped.kpi.ucCapacityAsOf) kpi.ucCapacityContext = `as of ${scraped.kpi.ucCapacityAsOf} · AGEL IR`;
+    if (scraped.kpi.ppaAsOf)        kpi.ppaContext        = `as of ${scraped.kpi.ppaAsOf} · AGEL IR`;
+    if (scraped.kpi.capexPeriod)    kpi.capexContext      = `${scraped.kpi.capexPeriod} guidance · AGEL IR`;
+  }
+
+  let fin = base.fin;
+  if (scraped.fin) {
+    fin = { ...base.fin, ...scraped.fin };
+    if (scraped.fin.netDebtAsOf)    fin.netDebtContext    = `as of ${scraped.fin.netDebtAsOf} · AGEL financials`;
+    if (scraped.fin.revCGRPeriod)   fin.revCGRContext     = `${scraped.fin.revCGRPeriod} CAGR`;
+  }
+
+  // Source provenance — which fields came from scrape vs mock
+  const fieldSources = {};
+  ['kpi','fin','mix','cod','ann'].forEach(f => {
+    fieldSources[f] = scraped[f] != null ? 'scraped' : 'mock';
+  });
+
   return {
-    kpi:   scraped.kpi   ? { ...base.kpi,  ...scraped.kpi  } : base.kpi,
-    fin:   scraped.fin   ? { ...base.fin,  ...scraped.fin  } : base.fin,
-    mix:   scraped.mix   || base.mix,
-    cod:   scraped.cod   || base.cod,
-    ann:   scraped.ann   || base.ann,
-    color: scraped.color || color,
+    kpi,
+    fin,
+    mix:          scraped.mix   || base.mix,
+    cod:          scraped.cod   || base.cod,
+    ann:          scraped.ann   || base.ann,
+    color:        scraped.color || color,
+    fieldSources,                           // consumed by tab header/footers
+    sourcesMeta:  scraped.sources || null,  // per-source ok/error status
   };
 }
 
