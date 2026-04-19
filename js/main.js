@@ -69,18 +69,42 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// ── Per-tab refresh dispatch ──
+// Tabs register a refresh handler here. When a tab-specific handler is
+// present, the global refresh button calls it; otherwise the button keeps
+// its original mock behaviour. Kept deliberately minimal — no UI redesign.
+const TAB_REFRESH = {
+  execution: () => (typeof refreshExecutionTab === 'function' ? refreshExecutionTab() : null),
+};
+
 // ── Refresh button ──
-document.getElementById('refreshBtn').addEventListener('click', () => {
+document.getElementById('refreshBtn').addEventListener('click', async () => {
   const btn = document.getElementById('refreshBtn');
   const icon = btn.querySelector('i');
   btn.disabled = true;
   icon.style.animation = 'spin 0.8s linear infinite';
 
-  setTimeout(() => {
+  const handler = TAB_REFRESH[currentTab];
+  try {
+    if (handler) {
+      const result = await handler();
+      const s = result && result.summary;
+      if (s) {
+        showToast(`Refreshed ${currentTab}: ${s.ok} ok · ${s.errored} error · ${s.skipped} skipped (${s.durationMs} ms)`, s.errored ? 'warning' : 'success');
+      } else {
+        showToast(`${currentTab} tab refreshed`, 'success');
+      }
+    } else {
+      // Fall-through behaviour for tabs without a registered handler.
+      await new Promise(r => setTimeout(r, 1200));
+      showToast('Mock data refreshed — live sources not connected yet', 'info');
+    }
+  } catch (err) {
+    showToast(`Refresh failed: ${err && err.message ? err.message : err}`, 'warning');
+  } finally {
     btn.disabled = false;
     icon.style.animation = '';
-    showToast('Mock data refreshed — live sources not connected yet', 'info');
-  }, 1200);
+  }
 });
 
 // ── Filters ──
