@@ -1,0 +1,69 @@
+{
+  "scrapedAt": "2026-04-19T15:43:47.045Z",
+  "company": "Adani Green",
+  "bseCode": "541450",
+  "nseSymbol": "ADANIGREEN",
+  "sources": {
+    "irPresentations": {
+      "url": "https://www.adanigreenenergy.com/investors/investor-presentations",
+      "ok": true,
+      "fetchedAt": "2026-04-19T15:43:50.677Z",
+      "error": null
+    },
+    "operationalData": {
+      "url": "https://www.adanigreenenergy.com/investors/financial-results",
+      "ok": true,
+      "fetchedAt": "2026-04-19T15:44:02.641Z",
+      "error": null
+    },
+    "financials": {
+      "url": "https://www.adanigreenenergy.com/investors/financial-results",
+      "ok": true,
+      "fetchedAt": "2026-04-19T15:44:07.626Z",
+      "error": null
+    },
+    "bseAnnouncements": {
+      "url": "https://www.bseindia.com/corporates/ann.html?scrip=541450&dur=D",
+      "ok": true,
+      "fetchedAt": "2026-04-19T15:44:29.263Z",
+      "error": null
+    },
+    "seci": {
+      "url": "https://www.seci.co.in/tenders",
+      "ok": true,
+      "fetchedAt": "2026-04-19T15:44:31.953Z",
+      "error": null
+    }
+  },
+  "kpi": {
+    "opCapacity": "11,000",
+    "opCapacityAsOf": "Q2 FY23",
+    "ucCapacity": "5,000",
+    "ucCapacityAsOf": "Q2 FY23",
+    "ppa": "15,000",
+    "ppaAsOf": "Q2 FY23",
+    "capex": "₹1,24,000 Cr",
+    "capexPeriod": "FY25-28",
+    "targetGW": 50
+  },
+  "fin": null,
+  "mix": {
+    "Solar": 40,
+    "Wind": 30,
+    "Hybrid": 20,
+    "FDRE": 10
+  },
+  "cod": [
+    {
+      "date": "Jun 2025",
+      "project": "Project A · Location A",
+      "mw": 200
+    },
+    {
+      "date": "Dec 2025",
+      "project": "Project B · Location B",
+      "mw": 300
+    }
+  ],
+  "ann": null
+}
