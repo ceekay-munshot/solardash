@@ -208,12 +208,20 @@ async function scrapeOperationalData(presentationUrl) {
       },
     },
     prompt:
-      'This is an Adani Green Energy investor presentation or results document. ' +
-      'Extract: (1) Operating capacity MW and the quarter it refers to. ' +
-      '(2) Under-construction MW. (3) Signed PPA pipeline MW. ' +
-      '(4) Capex guidance amount and period. (5) Portfolio technology mix percentages ' +
-      '(Solar / Wind / Hybrid / FDRE). (6) Any upcoming COD projects with expected ' +
-      'commissioning dates and MW. Return only values clearly stated in the document.',
+      'This is an Adani Green Energy (AGEL) investor presentation or operational ' +
+      'update document. Extract these values ONLY if they are explicitly stated ' +
+      'as numbers in the visible content:\n' +
+      '  • operatingCapacityMW — total operational MW (typically 11000-15000 MW)\n' +
+      '  • operatingCapacityAsOf — the quarter / date label printed beside it\n' +
+      '  • underConstructionMW — MW under construction (typically 5000-12000 MW)\n' +
+      '  • signedPPAMW — total contracted/PPA pipeline MW (typically 15000-30000)\n' +
+      '  • capexGuidance — capex guidance string with currency (e.g. "₹1,24,000 Cr")\n' +
+      '  • capexPeriod — the period that capex covers (e.g. "FY25-28")\n' +
+      '  • portfolioMix — % split as integers summing to ~100\n' +
+      '  • upcomingCODs — array of projects with expectedDate, capacityMW, name\n\n' +
+      'CRITICAL: Return null (or omit) for ANY field not explicitly visible. ' +
+      'Do NOT use defaults like 0 or "N/A". If the page is just a navigation ' +
+      'page with no operational figures, return an empty object {}.',
   });
   return { markdown, extracted, url: targetUrl };
 }
@@ -270,11 +278,16 @@ async function scrapeFinancials() {
         },
       },
       prompt:
-        'Extract Adani Green Energy\'s latest quarterly financial results: ' +
-        'revenue, EBITDA, net debt, net debt/EBITDA ratio, debt/equity, ' +
-        'average realisation per unit (₹/kWh), and 3-year revenue CAGR. ' +
-        'Also return the direct URL to the latest results PDF if visible. ' +
-        'Return only clearly stated figures.',
+        'Extract Adani Green Energy\'s latest quarterly financial figures: ' +
+        'revenue (INR Crore), EBITDA, net debt, net debt/EBITDA ratio, ' +
+        'debt/equity, average realisation per unit (₹/kWh), 3-year revenue ' +
+        'CAGR, and the direct URL to the latest results PDF.\n\n' +
+        'CRITICAL: Return null (or omit the field entirely) for ANY value that ' +
+        'is not explicitly stated as a number on the visible page. Do NOT ' +
+        'guess, do NOT default to 0, do NOT use placeholders like "N/A". ' +
+        'For Adani Green, a real net-debt value is in the tens of thousands ' +
+        'of INR Crore — never single digits or zero. If the page shows only ' +
+        'navigation/links and no numeric financials, return an empty object.',
     }
   );
   return { markdown, extracted, url: 'https://www.adanigreenenergy.com/investors/financial-results' };
@@ -285,7 +298,7 @@ async function scrapeBSEAnnouncements() {
   // BSE announcements for ADANIGREEN — dur=D means recent (dynamic date range)
   const url = 'https://www.bseindia.com/corporates/ann.html?scrip=541450&dur=D';
   const { markdown, extracted } = await fcScrape(url, {
-    waitFor: 4000,
+    waitFor: 8000,                                            // BSE is JS-heavy
     schema: {
       type: 'object',
       properties: {
@@ -309,12 +322,16 @@ async function scrapeBSEAnnouncements() {
       },
     },
     prompt:
-      'This is the BSE corporate filings/announcements page for Adani Green Energy Ltd ' +
-      '(BSE code 541450). Extract the 10 most recent announcements. For each: date, ' +
-      'title/subject, a 1-2 sentence summary of what it says (especially MW figures, ' +
-      'project names, financial figures), category, and direct filing URL if visible. ' +
-      'Prioritise announcements about: project wins, commissioning, quarterly results, ' +
-      'contracts, and capex.',
+      'This is the BSE corporate filings/announcements page for Adani Green Energy ' +
+      'Ltd (BSE code 541450). Extract the 10 most recent announcements that are ' +
+      'literally visible in the page text. For each: date (as printed), title/' +
+      'subject (verbatim), a 1-sentence factual summary, category, and the ' +
+      'direct filing URL.\n\n' +
+      'CRITICAL: Do NOT invent announcements. Do NOT generate sequential filing ' +
+      'IDs like "?id=1", "?id=2". Real BSE filing URLs contain a long ' +
+      'alphanumeric ID — if you cannot see the actual link, return null for ' +
+      'filingUrl. If the page shows no announcement list (e.g. only nav / login ' +
+      'prompt), return announcements: []. Use only the literal text visible.',
   });
   return { markdown, extracted, url };
 }
@@ -352,6 +369,60 @@ async function scrapeSECI() {
   return { markdown, extracted, url: 'https://www.seci.co.in/tenders' };
 }
 
+/* ─── Validation helpers ─────────────────────────────────────────────────────
+   Firecrawl's LLM `extract` will hallucinate plausible-looking data when a
+   page doesn't render properly (e.g. JS-heavy BSE / NSE pages). We reject
+   any field that looks like an LLM default before writing the JSON. The
+   dashboard then truthfully falls back to MOCK rather than display
+   invented "REAL" values.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+function _isValidUrl(s) {
+  if (!s || typeof s !== 'string') return false;
+  if (/^(N\/A|null|undefined|none|tbd|—|-|—)$/i.test(s.trim())) return false;
+  try {
+    const u = new URL(s);
+    return (u.protocol === 'https:' || u.protocol === 'http:') && /\./.test(u.hostname);
+  } catch { return false; }
+}
+
+function _isLikelyRealBseUrl(s) {
+  // Real BSE filing URLs look like ?id=<long-alphanumeric> or contain
+  // /xml-data/corpfiling/ or /downloadFile.aspx — never sequential ?id=1.
+  if (!_isValidUrl(s)) return false;
+  if (!/bseindia\.com/i.test(s)) return false;
+  if (/[?&]id=\d{1,4}(?:$|&)/.test(s)) return false;          // reject ?id=1, ?id=42 etc.
+  return true;
+}
+
+function _isPositiveNum(n) {
+  return typeof n === 'number' && isFinite(n) && n > 0;
+}
+
+function _isNonZeroValue(v) {
+  if (v == null) return false;
+  if (typeof v === 'number') return v !== 0 && isFinite(v);
+  if (typeof v === 'string') {
+    const t = v.trim();
+    if (!t || /^(N\/A|null|undefined|none|tbd|—|-)$/i.test(t)) return false;
+    if (/^[₹$]?\s*0\b/.test(t)) return false;                 // "₹0", "0.0x", "0%"
+    if (/^0\.0+\s*x$/i.test(t)) return false;
+    return true;
+  }
+  return true;
+}
+
+function _isPlausibleDate(s) {
+  // Accept dates within last 18 months only (avoid stale hallucinations).
+  if (!s || typeof s !== 'string') return true;               // unknown → keep
+  // Look for a 4-digit year.
+  const yearMatch = s.match(/\b(20\d{2})\b/);
+  if (!yearMatch) return true;                                // no year → keep (relative date)
+  const year = parseInt(yearMatch[1], 10);
+  const now  = new Date().getFullYear();
+  return year >= (now - 1) && year <= now + 1;                // window: prev / current / next year
+}
+
 /* ─── Normalise scraped data into the final JSON shape ──────────────────── */
 function normalise(opData, finData, annData, presData) {
   const op  = opData?.extracted  || {};
@@ -359,70 +430,104 @@ function normalise(opData, finData, annData, presData) {
   const ann = annData?.extracted || {};
   const pre = presData?.extracted || {};
 
-  /* ── kpi ── */
+  /* ── kpi (operational MW figures) ── */
   const kpi = {};
-  if (op.operatingCapacityMW != null) {
-    kpi.opCapacity   = _fmtMW(op.operatingCapacityMW);
+  if (_isPositiveNum(op.operatingCapacityMW)) {
+    kpi.opCapacity     = _fmtMW(op.operatingCapacityMW);
     kpi.opCapacityAsOf = op.operatingCapacityAsOf || null;
   }
-  if (op.underConstructionMW != null) {
-    kpi.ucCapacity   = _fmtMW(op.underConstructionMW);
+  if (_isPositiveNum(op.underConstructionMW)) {
+    kpi.ucCapacity     = _fmtMW(op.underConstructionMW);
     kpi.ucCapacityAsOf = op.operatingCapacityAsOf || null;
   }
-  if (op.signedPPAMW != null) {
-    kpi.ppa          = _fmtMW(op.signedPPAMW);
-    kpi.ppaAsOf      = op.operatingCapacityAsOf || null;
+  if (_isPositiveNum(op.signedPPAMW)) {
+    kpi.ppa            = _fmtMW(op.signedPPAMW);
+    kpi.ppaAsOf        = op.operatingCapacityAsOf || null;
   }
-  if (op.capexGuidance) {
-    kpi.capex        = op.capexGuidance;
-    kpi.capexPeriod  = op.capexPeriod || null;
+  if (_isNonZeroValue(op.capexGuidance)) {
+    kpi.capex          = op.capexGuidance;
+    kpi.capexPeriod    = op.capexPeriod || null;
   }
-  if (op.targetCapacityGW) {
-    kpi.targetGW     = op.targetCapacityGW;
+  if (_isPositiveNum(op.targetCapacityGW)) {
+    kpi.targetGW       = op.targetCapacityGW;
   }
 
-  /* ── fin ── */
+  /* ── fin (financial summary) ──
+     Reject if value looks like an LLM default. We require netDebt to be
+     plausible (Adani Green's net debt is in the tens of thousands of Cr —
+     a value < 1000 Cr is almost certainly hallucinated). */
   const finOut = {};
-  if (fin.netDebtCr != null)       finOut.netDebt    = `₹${_fmtCr(fin.netDebtCr)} Cr`;
-  if (fin.netDebtCr != null)       finOut.netDebtAsOf = fin.latestQuarter || null;
-  if (fin.netDebtEbitda != null)   finOut.leverage   = `${fin.netDebtEbitda.toFixed(1)}x`;
-  if (fin.debtEquity != null)      finOut.debtEquity = `${fin.debtEquity.toFixed(1)}x`;
-  if (fin.realisationPerUnit)      finOut.yield      = fin.realisationPerUnit;
-  if (fin.revenueCagrPct != null)  finOut.revCGR     = `${fin.revenueCagrPct}%`;
-  if (fin.revenueCagrPeriod)       finOut.revCGRPeriod = fin.revenueCagrPeriod;
+  if (_isPositiveNum(fin.netDebtCr) && fin.netDebtCr > 1000) {
+    finOut.netDebt     = `₹${_fmtCr(fin.netDebtCr)} Cr`;
+    finOut.netDebtAsOf = fin.latestQuarter || null;
+  }
+  if (_isPositiveNum(fin.netDebtEbitda) && fin.netDebtEbitda > 0.1) {
+    finOut.leverage    = `${fin.netDebtEbitda.toFixed(1)}x`;
+  }
+  if (_isPositiveNum(fin.debtEquity) && fin.debtEquity > 0.1) {
+    finOut.debtEquity  = `${fin.debtEquity.toFixed(1)}x`;
+  }
+  if (_isNonZeroValue(fin.realisationPerUnit)) {
+    finOut.yield       = fin.realisationPerUnit;
+  }
+  if (_isPositiveNum(fin.revenueCagrPct) && fin.revenueCagrPct > 0) {
+    finOut.revCGR      = `${fin.revenueCagrPct}%`;
+  }
+  if (_isNonZeroValue(fin.revenueCagrPeriod)) {
+    finOut.revCGRPeriod = fin.revenueCagrPeriod;
+  }
 
-  /* ── mix ── */
-  const mix = op.portfolioMix
-    ? { Solar: op.portfolioMix.Solar || 0, Wind: op.portfolioMix.Wind || 0,
-        Hybrid: op.portfolioMix.Hybrid || 0, FDRE: op.portfolioMix.FDRE || 0 }
-    : null;
+  /* ── mix (portfolio technology %) ──
+     Reject if percentages don't sum to ~100 (a sign the LLM made it up). */
+  let mix = null;
+  if (op.portfolioMix && typeof op.portfolioMix === 'object') {
+    const m = op.portfolioMix;
+    const sum = (m.Solar||0) + (m.Wind||0) + (m.Hybrid||0) + (m.FDRE||0);
+    if (sum >= 90 && sum <= 110) {                            // tolerate ±10pp rounding
+      mix = { Solar: m.Solar||0, Wind: m.Wind||0, Hybrid: m.Hybrid||0, FDRE: m.FDRE||0 };
+    }
+  }
 
-  /* ── cod ── */
+  /* ── cod (upcoming COD timeline) ──
+     Drop entries with no MW or no project name. */
   const cod = Array.isArray(op.upcomingCODs) && op.upcomingCODs.length > 0
-    ? op.upcomingCODs.map(c => ({
-        date:    c.expectedDate || '—',
-        project: [c.projectName, c.location].filter(Boolean).join(' · '),
-        mw:      c.capacityMW || 0,
-      }))
+    ? op.upcomingCODs
+        .filter(c => _isPositiveNum(c.capacityMW) && c.projectName && c.expectedDate)
+        .filter(c => _isPlausibleDate(c.expectedDate))
+        .map(c => ({
+          date:    c.expectedDate,
+          project: [c.projectName, c.location].filter(Boolean).join(' · '),
+          mw:      Math.round(c.capacityMW),
+        }))
     : null;
+  const codOut = cod && cod.length > 0 ? cod : null;
 
-  /* ── announcements ── */
+  /* ── announcements ──
+     Reject items with implausible dates (>18 months stale) or fake-looking
+     BSE URLs (sequential ?id=1..N). bseUrl is set to null if it looks fake;
+     the announcement text itself is kept since the title/detail still hold
+     value when sourced from real markdown. */
   const rawAnn = ann.announcements;
   const annOut = Array.isArray(rawAnn) && rawAnn.length > 0
-    ? rawAnn.slice(0, 8).map(a => ({
-        date:   a.date     || '—',
-        title:  a.title    || '—',
-        detail: a.detail   || '',
-        bseUrl: a.filingUrl || null,
-      }))
+    ? rawAnn
+        .filter(a => a.title && a.date)
+        .filter(a => _isPlausibleDate(a.date))
+        .slice(0, 8)
+        .map(a => ({
+          date:   a.date,
+          title:  a.title,
+          detail: a.detail || '',
+          bseUrl: _isLikelyRealBseUrl(a.filingUrl) ? a.filingUrl : null,
+        }))
     : null;
+  const annFinal = annOut && annOut.length > 0 ? annOut : null;
 
   return {
     kpi:    Object.keys(kpi).length    > 0 ? kpi    : null,
     fin:    Object.keys(finOut).length > 0 ? finOut : null,
     mix:    mix,
-    cod:    cod,
-    ann:    annOut,
+    cod:    codOut,
+    ann:    annFinal,
   };
 }
 
@@ -467,9 +572,13 @@ try {
   console.log('FAIL ·', err.message);
 }
 
-// Step 2: Follow latest presentation URL if found
-const latestPresUrl = results.presentations?.extracted?.latestPresentation?.url || null;
-process.stdout.write(`[2/5] Operational data (${latestPresUrl || 'financial-results page'}) … `);
+// Step 2: Follow latest presentation URL if found AND valid
+const rawPresUrl  = results.presentations?.extracted?.latestPresentation?.url || null;
+const latestPresUrl = _isValidUrl(rawPresUrl) ? rawPresUrl : null;
+if (rawPresUrl && !latestPresUrl) {
+  console.log(`  (step-1 returned non-URL "${rawPresUrl}" — using fallback)`);
+}
+process.stdout.write(`[2/5] Operational data (${latestPresUrl || 'financial-results page (fallback)'}) … `);
 try {
   results.opData = await scrapeOperationalData(latestPresUrl);
   out.sources.operationalData = {
@@ -554,15 +663,37 @@ await writeFile(OUT_PATH, JSON.stringify(out, null, 2), 'utf8');
 console.log(`\nWrote ${OUT_PATH}`);
 console.log(`${okCount}/${total} sources OK`);
 
-// Field coverage report
-console.log('\nField coverage:');
+// Field coverage report (after validation guards)
+console.log('\nField coverage (after anti-hallucination guards):');
 const fields = { kpi: out.kpi, fin: out.fin, mix: out.mix,
                  cod: out.cod, ann: out.ann };
 for (const [k, v] of Object.entries(fields)) {
-  const status = v == null ? '✗ not extracted (mock fallback)'
+  const status = v == null ? '✗ not extracted / rejected as junk → mock fallback'
     : Array.isArray(v)     ? `✓ ${v.length} item(s)`
     : `✓ ${Object.keys(v).length} field(s)`;
   console.log(`  ${k.padEnd(4)} → ${status}`);
+}
+
+// Show what raw values were rejected (if any) — helps debug bad extraction.
+const rawFin = results.finData?.extracted || {};
+const rejected = [];
+if (rawFin.netDebtCr != null && (!_isPositiveNum(rawFin.netDebtCr) || rawFin.netDebtCr <= 1000)) {
+  rejected.push(`fin.netDebtCr=${rawFin.netDebtCr} (LLM hallucinated default)`);
+}
+if (rawFin.netDebtEbitda != null && (!_isPositiveNum(rawFin.netDebtEbitda) || rawFin.netDebtEbitda <= 0.1)) {
+  rejected.push(`fin.netDebtEbitda=${rawFin.netDebtEbitda}`);
+}
+const rawAnn = results.annData?.extracted?.announcements;
+if (Array.isArray(rawAnn)) {
+  const fakeUrls = rawAnn.filter(a => a.filingUrl && !_isLikelyRealBseUrl(a.filingUrl)).length;
+  if (fakeUrls > 0) rejected.push(`${fakeUrls}/${rawAnn.length} announcement filingUrls looked fake`);
+  const staleAnn = rawAnn.filter(a => a.date && !_isPlausibleDate(a.date)).length;
+  if (staleAnn > 0) rejected.push(`${staleAnn}/${rawAnn.length} announcements had stale dates`);
+}
+if (rejected.length > 0) {
+  console.log('\nRejected (suspect hallucinations):');
+  rejected.forEach(r => console.log(`  ⚠ ${r}`));
+  console.log('  → these fields stay on MOCK rather than display invented "REAL" values.');
 }
 
 console.log('\nNext:');
