@@ -55,7 +55,46 @@ function initTenderTab() {
         </div>
       </div>
     </div>
-    ${Components.chartCard({ id:'chartTariffTrend', title:'Tariff Discovery Trend', subtitle:'Quarterly average L1 discovered tariff (₹/kWh)', height:280, source: src.label })}
+    <!-- Tariff Discovery Trend — REAL DATA (utility-scale solar L1, by award quarter) -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Tariff Discovery Trend</div>
+          <div class="card-subtitle">
+            Quarterly average L1 discovered tariff (₹/kWh) ·
+            Utility-scale Solar only · Award-date quarter ·
+            ${SOLAR_TARIFF_DATA.tenderCount.reduce((a, b) => a + b, 0)} tenders across
+            ${SOLAR_TARIFF_DATA.avgL1.filter(v => v !== null).length} quarters
+          </div>
+        </div>
+        <span class="source-chip manual"
+              title="SECI result pages + official GUVNL / RUMSL result announcements. Storage-linked, FDRE, RTC, Hybrid, Wind tariffs excluded.">
+          <i class="fa-solid fa-file-arrow-down"></i> REAL · SECI / Official
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="canvas-wrap" style="height:240px"><canvas id="chartTariffTrend"></canvas></div>
+        <div style="margin-top:10px;padding:10px 12px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:7px;font-size:10px;color:var(--text-secondary);line-height:1.7">
+          <strong style="color:var(--accent-solar)">Methodology:</strong>
+          L1 = lowest explicit awarded tariff per tender result ·
+          Arithmetic mean of per-tender L1 within each quarter ·
+          Scope: ${SOLAR_TARIFF_META.scope} ·
+          Quarter axis = award/LoA date quarter (India FY) ·
+          Quarters with no pure-solar award render as chart gaps ·
+          Data cutoff: ${SOLAR_TARIFF_META.cutoffDate}
+        </div>
+        <div style="margin-top:8px;padding:6px 0;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> REAL · SECI / Official</span>
+          <span class="chart-source">
+            Sources:
+            <a href="${SOLAR_TARIFF_META.primarySource}" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">SECI Tenders</a>
+            · <a href="https://www.guvnl.com/" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">GUVNL</a>
+            · <a href="https://www.rumsl.co.in/" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">RUMSL</a>
+            · Tariff populated only when L1 is explicit in the official result document
+          </span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Tender Type Mix + Issuer Comparison -->
@@ -309,10 +348,11 @@ function initTenderTab() {
       { label: 'MW Awarded (result date)', data: TENDER_FLOW_DATA.awarded,  color: '#22c55e' },
     ], { yLabel: 'MW' });
 
-    // Tariff Trend
-    const tt = d.tariffTrend;
-    Charts.multiLine('chartTariffTrend', tt.labels, [
-      { label:'Avg L1 Tariff', data: tt.tariff, color: '#f59e0b', fill: true }
+    // Tariff Trend — REAL DATA from SOLAR_TARIFF_DATA
+    // Utility-scale solar L1 only, grouped by award/LoA quarter. Quarters
+    // with no pure-solar award pass through as null → chart gap.
+    Charts.multiLine('chartTariffTrend', SOLAR_TARIFF_DATA.labels, [
+      { label: 'Avg L1 Tariff (Utility-Scale Solar)', data: SOLAR_TARIFF_DATA.avgL1, color: '#f59e0b', fill: true }
     ], { yLabel: '₹/kWh' });
 
     // Tender Mix Donut — REAL DATA from TYPE_MIX_DATA (FY26)
