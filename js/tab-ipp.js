@@ -9,32 +9,55 @@ function initIPPTab() {
   if (!el || el.dataset.initialized) return;
   el.dataset.initialized = 'true';
 
-  renderIPPTab();
+  // Load data (async) then render. On first visit the cache is cold.
+  loadIPPCompanyData(activeIPP).then(() => renderIPPTab());
 }
 
 function renderIPPTab(company) {
   company = company || activeIPP;
   activeIPP = company;
   const el = document.getElementById('tab-ipp');
-  const d = MOCK.ipp;
-  const src = DATA_SOURCES.ipp;
-  const kpi = d.kpis[company];
-  const fin = d.financials[company];
-  const color = d.companyColors[company] || '#f59e0b';
-  const announcements = d.announcements[company] || d.announcements['Adani Green'];
-  const codList = d.codTimeline[company] || [];
-  const mix = d.portfolioMix[company];
+
+  // If cache is cold for this company, show a brief loader then re-invoke.
+  if (!IPP_COMPANY_CACHE[company]) {
+    el.innerHTML = `<div style="padding:60px;text-align:center;color:var(--text-muted)">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size:18px"></i>
+      <div style="margin-top:8px;font-size:12px">Loading ${company}…</div>
+    </div>`;
+    loadIPPCompanyData(company).then(() => renderIPPTab(company));
+    return;
+  }
+
+  const cached = IPP_COMPANY_CACHE[company];
+  const d      = MOCK.ipp;                    // still needed for cross-company comparison table
+  const src    = DATA_SOURCES.ipp;
+  const kpi    = cached.data.kpi;
+  const fin    = cached.data.fin;
+  const color  = cached.data.color;
+  const announcements = cached.data.ann;
+  const codList       = cached.data.cod;
+  const mix           = cached.data.mix;
+  // sourceLabel shown in the company header chip
+  const sourceLabel   = cached.source === 'scraped'
+    ? `REAL · ${cached.scrapedAt ? cached.scrapedAt.slice(0,10) : 'scraped'}`
+    : 'MOCK DATA';
+  const sourceClass   = cached.source === 'scraped' ? 'manual' : 'mock';
+  const sourceIcon    = cached.source === 'scraped' ? 'fa-file-lines' : 'fa-flask';
+  // Companies list now from canonical registry
+  const companies     = IPP_COMPANY_NAMES;
 
   el.innerHTML = `
   <!-- Company Selector -->
   <div class="mb-5">
     <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.07em">Select Company</div>
     <div class="company-selector">
-      ${d.companies.map(c => `
-        <div class="company-pill ${c === company ? 'active' : ''}" onclick="renderIPPTab('${c}')"
-             style="${c === company ? `background:${d.companyColors[c]};border-color:${d.companyColors[c]}` : ''}">
+      ${companies.map(c => {
+        const cColor = IPP_COMPANY_BY_NAME[c]?.color || '#f59e0b';
+        return `<div class="company-pill ${c === company ? 'active' : ''}" onclick="renderIPPTab('${c}')"
+             style="${c === company ? `background:${cColor};border-color:${cColor}` : ''}">
           ${c}
-        </div>`).join('')}
+        </div>`;
+      }).join('')}
     </div>
   </div>
 
@@ -45,7 +68,7 @@ function renderIPPTab(company) {
       <div class="company-info-name">${company}</div>
       <div class="company-info-meta">Listed Renewable Energy Developer · IPP Monitor</div>
     </div>
-    <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK DATA</span>
+    <span class="source-chip ${sourceClass}"><i class="fa-solid ${sourceIcon}"></i> ${sourceLabel}</span>
     <span class="source-chip manual"><i class="fa-solid fa-file-lines"></i> Filings Source</span>
   </div>
 
@@ -174,12 +197,12 @@ function renderIPPTab(company) {
       ['#f59e0b','#3b82f6','#22c55e','#a855f7']
     );
 
-    // Op vs Pipeline
+    // Op vs Pipeline — uses MOCK for all companies until per-company scrape lands
     Charts.bar('chartOpVsPipeline',
-      d.companies,
+      companies,
       [
-        { label:'Operating', data: d.companies.map(c => parseInt(d.kpis[c].opCapacity.replace(/,/g,''))), color: '#22c55e' },
-        { label:'Under-Construction', data: d.companies.map(c => parseInt(d.kpis[c].ucCapacity.replace(/,/g,''))), color: '#f59e0b' },
+        { label:'Operating',          data: companies.map(c => { const k = (IPP_COMPANY_CACHE[c]?.data?.kpi || MOCK.ipp.kpis[c]); return k ? parseInt(String(k.opCapacity).replace(/,/g,'')) || 0 : 0; }), color: '#22c55e' },
+        { label:'Under-Construction', data: companies.map(c => { const k = (IPP_COMPANY_CACHE[c]?.data?.kpi || MOCK.ipp.kpis[c]); return k ? parseInt(String(k.ucCapacity).replace(/,/g,'')) || 0 : 0; }), color: '#f59e0b' },
       ],
       { yLabel: 'MW' }
     );
@@ -218,10 +241,12 @@ function buildCompanyComparisonTable(d) {
           <th>Rev CAGR</th>
         </tr></thead>
         <tbody>
-          ${d.companies.map(c => {
-            const kpi = d.kpis[c];
-            const fin = d.financials[c];
-            const color = d.companyColors[c];
+          ${IPP_COMPANY_NAMES.map(c => {
+            // Use cached scraped data if available, otherwise fall back to mock
+            const cached = IPP_COMPANY_CACHE[c];
+            const kpi   = (cached?.data?.kpi)   || d.kpis[c]       || { opCapacity:'—', ucCapacity:'—', ppa:'—' };
+            const fin   = (cached?.data?.fin)   || d.financials[c]  || { netDebt:'—', leverage:'—', revCGR:'—' };
+            const color = IPP_COMPANY_BY_NAME[c]?.color || d.companyColors[c] || '#f59e0b';
             return `<tr>
               <td><span style="color:${color};font-weight:700">${c}</span></td>
               <td class="number mono">${kpi.opCapacity}</td>
