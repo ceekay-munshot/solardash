@@ -383,3 +383,29 @@ function execModeChip(mode) {
   if (mode === 'unavailable') return '<span class="source-chip" style="background:rgba(239,68,68,0.12);color:#ef4444;border-color:rgba(239,68,68,0.3)"><i class="fa-solid fa-ban"></i> UNAVAILABLE</span>';
   return '<span class="source-chip manual"><i class="fa-solid fa-file-arrow-down"></i> SEED · MNRE</span>';
 }
+
+/* ── Getters for seed-only blocks (COD timeline, project table) ───────────── */
+
+function execGetCodTimeline() {
+  if (typeof COD_TIMELINE_ROWS !== 'undefined' && Array.isArray(COD_TIMELINE_ROWS) && COD_TIMELINE_ROWS.length) {
+    return {
+      mode:    'seed',
+      rows:    COD_TIMELINE_ROWS,
+      asOfDate: (typeof COD_TIMELINE_META !== 'undefined') ? COD_TIMELINE_META.cutoffDate : EXEC_SEED_AS_OF,
+      meta:    (typeof COD_TIMELINE_META !== 'undefined') ? COD_TIMELINE_META : null,
+    };
+  }
+  return { mode: 'unavailable', rows: [] };
+}
+
+function execGetProjectTable() {
+  if (typeof PROJECT_TABLE_ROWS !== 'undefined' && Array.isArray(PROJECT_TABLE_ROWS) && PROJECT_TABLE_ROWS.length) {
+    return {
+      mode:    'seed',
+      rows:    PROJECT_TABLE_ROWS,
+      asOfDate: (typeof PROJECT_TABLE_META !== 'undefined') ? PROJECT_TABLE_META.cutoffDate : EXEC_SEED_AS_OF,
+      meta:    (typeof PROJECT_TABLE_META !== 'undefined') ? PROJECT_TABLE_META : null,
+    };
+  }
+  return { mode: 'unavailable', rows: [] };
+}

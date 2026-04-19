@@ -16,6 +16,8 @@ function initExecutionTab() {
   const stateComm = (typeof execGetStateCommission === 'function') ? execGetStateCommission() : null;
   const ucPipe    = (typeof execGetUcPipeline === 'function') ? execGetUcPipeline() : null;
   const devRank   = (typeof execGetDeveloperRanking === 'function') ? execGetDeveloperRanking() : null;
+  const codTimeline = (typeof execGetCodTimeline === 'function') ? execGetCodTimeline() : null;
+  const projTable   = (typeof execGetProjectTable === 'function') ? execGetProjectTable() : null;
   const modeChip  = (m) => (typeof execModeChip === 'function') ? execModeChip(m) : '';
   const refreshLine = (typeof execRefreshStatusText === 'function') ? execRefreshStatusText() : '';
 
@@ -291,78 +293,139 @@ function initExecutionTab() {
 
   <!-- Delay Tracker + COD Timeline -->
   <div class="grid-2 mb-6">
-    <!-- Delay Tracker -->
+    <!-- Delay Tracker — UNAVAILABLE: no structured public quarterly taxonomy -->
     <div class="card">
       <div class="card-header">
         <div>
           <div class="card-title">Delay Reason Analysis</div>
           <div class="card-subtitle">MW delayed by root cause category</div>
         </div>
-        <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>
+        <span class="source-chip" style="background:rgba(239,68,68,0.12);color:#ef4444;border-color:rgba(239,68,68,0.3)"><i class="fa-solid fa-ban"></i> UNAVAILABLE</span>
       </div>
       <div class="card-body">
-        ${d.delayReasons.map(dr => `
-        <div style="margin-bottom:14px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <span class="delay-tag ${dr.type}">${dr.reason}</span>
-            </div>
-            <div style="font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text-primary)">${dr.mw.toLocaleString()} MW</div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:180px;gap:14px;padding:20px">
+          <div style="width:44px;height:44px;border-radius:50%;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-lock" style="color:#ef4444;font-size:18px"></i>
           </div>
-          ${Components.progressBar(dr.pct, dr.type === 'delay-land' ? '#ef4444' : dr.type === 'delay-grid' ? '#f59e0b' : dr.type === 'delay-finance' ? '#3b82f6' : dr.type === 'delay-approval' ? '#a855f7' : '#f97316')}
-          <div style="font-size:10px;color:var(--text-muted);margin-top:3px">${dr.pct}% of delayed portfolio</div>
-        </div>`).join('')}
-        ${Components.sourceFooter(src.label, 'execution')}
+          <div style="text-align:center;max-width:380px">
+            <div style="font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:6px">No structured public data source</div>
+            <div style="font-size:11px;color:var(--text-secondary);line-height:1.7">
+              No official body publishes a structured quarterly taxonomy of solar project delay reasons.
+              MNRE Physical Progress reports the aggregate commissioned vs. sanctioned gap but does not
+              categorise delay causes. CEA plant-wise (the only project-level public source) is robots-blocked.
+              BSE/NSE Reg-30 filings capture individual delays but are not aggregated by category.
+              This block cannot be truthfully populated without private or paid data.
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px 12px;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:7px;font-size:10px;color:var(--text-secondary);line-height:1.7">
+          <strong style="color:#ef4444">Source audit:</strong>
+          MNRE Physical Progress → aggregate gap only, no delay taxonomy ·
+          <a href="https://cea.nic.in/rpm/plant-wise-details-of-renewable-energy-projects/?lang=en" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">CEA plant-wise</a> → ROBOTS_DISALLOWED ·
+          BSE/NSE Reg-30 filings → project-level, not aggregated by category ·
+          No structured quarterly delay taxonomy found in any public source
+        </div>
       </div>
     </div>
 
-    <!-- Upcoming COD Timeline -->
+    <!-- Upcoming COD Timeline — REAL·SEED from confirmed SECI/GUVNL award records -->
     <div class="card">
       <div class="card-header">
         <div>
           <div class="card-title">Upcoming COD Timeline</div>
-          <div class="card-subtitle">Projects expected to commission in next 6 months</div>
+          <div class="card-subtitle">
+            Projected commissioning dates · ${codTimeline && codTimeline.rows ? codTimeline.rows.length : 0} tranches ·
+            ${(typeof COD_TIMELINE_META !== 'undefined' && COD_TIMELINE_META.window) || 'Apr 2026 – Mar 2027'} ·
+            Seed · as of ${codTimeline ? (codTimeline.asOfDate || '—') : '—'}
+          </div>
         </div>
-        <span class="source-chip mock"><i class="fa-solid fa-flask"></i> MOCK</span>
+        <span class="source-chip manual" style="background:rgba(59,130,246,0.1);color:#3b82f6;border-color:rgba(59,130,246,0.25)"><i class="fa-solid fa-file-arrow-down"></i> SEED · SECI</span>
       </div>
       <div class="card-body">
-        ${d.upcomingCOD.map(c =>
-          Components.codItem(c.date, c.project, `${c.dev} · ${c.mw} MW`)
-        ).join('')}
-        ${Components.sourceFooter(src.label, 'execution')}
+        ${codTimeline && codTimeline.rows && codTimeline.rows.length
+          ? codTimeline.rows.map(r =>
+              Components.codItem(r.date, r.project, `${r.dev} · ${r.mw.toLocaleString()} MW · ${r.type}`)
+            ).join('')
+          : '<div style="text-align:center;padding:32px;color:var(--text-muted)">No upcoming COD data available</div>'}
+        <div style="margin-top:10px;padding:10px 12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:7px;font-size:10px;color:var(--text-secondary);line-height:1.7">
+          <strong style="color:var(--accent-blue)">Method:</strong>
+          Projected COD = LoA date + standard SECI commissioning term (Solar 18 mo; Solar+BESS 24 mo).
+          SECI-XV MW splits are indicative (~400 MW each; per-developer allocation not publicly disclosed).
+          Dates are targets — SECI grants extensions on application.
+          Listed developer (Adani Green, ReNew Power) actual CODs appear in BSE/NSE Reg-30 filings.
+        </div>
+        <div style="margin-top:8px;padding:6px 0;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="source-chip manual" style="background:rgba(59,130,246,0.1);color:#3b82f6;border-color:rgba(59,130,246,0.25)"><i class="fa-solid fa-file-arrow-down"></i> SEED · SECI</span>
+          <span class="chart-source">
+            <a href="https://www.seci.co.in/tenders" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">SECI tenders</a> ·
+            Mercom India Aug 2024 (SECI-XVI) ·
+            Power Line Dec 27 2024 (SECI-XVIII) ·
+            SE Mar 2025 (GUVNL 250 MW) ·
+            IESA ESS Oct 2025 (SECI-XV) ·
+            ${refreshLine}
+          </span>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Project Execution Table -->
+  <!-- Project Execution Table — REAL·SEED from SECI/GUVNL award records -->
   <div class="mb-6">
-    ${Components.tableCard({
-      title: 'Project Execution Detail Table',
-      subtitle: 'Key projects under monitoring — status, lag, and issue flags',
-      source: src.label,
-      body: `<table class="data-table">
-        <thead><tr>
-          <th>Project</th><th>State</th><th>Developer</th>
-          <th class="number">MW</th><th>Status</th>
-          <th>Award Date</th><th>Plan COD</th>
-          <th class="number">Lag (mo)</th><th>Issue</th>
-        </tr></thead>
-        <tbody>
-          ${d.projectTable.map(p => `
-          <tr>
-            <td class="primary">${p.project}</td>
-            <td>${p.state}</td>
-            <td>${p.dev}</td>
-            <td class="number mono">${p.mw.toLocaleString()}</td>
-            <td>${buildExecStatusTag(p.status)}</td>
-            <td class="mono" style="color:var(--text-muted)">${p.awardDate}</td>
-            <td class="mono" style="color:var(--text-muted)">${p.planCOD}</td>
-            <td class="number mono" style="color:${p.lag > 30 ? 'var(--status-negative)' : p.lag > 24 ? 'var(--status-warning)' : 'var(--status-positive)'}">${p.lag}</td>
-            <td>${p.issue === 'None' ? Components.tag('None','positive') : `<span class="tag tag-warning">${p.issue}</span>`}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`
-    })}
+    <div class="card" style="overflow:hidden">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Project Execution Detail Table</div>
+          <div class="card-subtitle">
+            Active projects under monitoring · ${projTable && projTable.rows ? projTable.rows.length : 0} rows ·
+            ${projTable && projTable.rows ? (projTable.rows.reduce((a,r)=>a+r.mw,0)/1000).toFixed(2) + ' GW total awarded' : '—'} ·
+            Seed · as of ${projTable ? (projTable.asOfDate || '—') : '—'}
+          </div>
+        </div>
+        <span class="source-chip manual" style="background:rgba(59,130,246,0.1);color:#3b82f6;border-color:rgba(59,130,246,0.25)"><i class="fa-solid fa-file-arrow-down"></i> SEED · SECI</span>
+      </div>
+      <div class="card-body" style="padding:0">
+        <div style="overflow-x:auto">
+          <table class="data-table" style="min-width:820px">
+            <thead><tr>
+              <th>Project / Scheme</th><th>State</th><th>Developer</th>
+              <th class="number">MW</th><th>Status</th>
+              <th>LoA Date</th><th>Plan COD</th>
+              <th class="number" title="Months from LoA to projected/actual COD. On-schedule Solar = 18 mo; Solar+BESS = 24 mo. Higher = delayed.">Lag (mo)</th>
+              <th>Issue</th>
+            </tr></thead>
+            <tbody>
+              ${(projTable && projTable.rows || []).map(p => `
+              <tr>
+                <td class="primary">${p.project}</td>
+                <td style="font-size:11px;color:var(--text-secondary)">${p.state}</td>
+                <td>${p.dev}</td>
+                <td class="number mono">${p.mw.toLocaleString()}</td>
+                <td>${buildExecStatusTag(p.status)}</td>
+                <td class="mono" style="color:var(--text-muted);font-size:11px">${p.awardDate}</td>
+                <td class="mono" style="color:var(--text-muted);font-size:11px">${p.planCOD}</td>
+                <td class="number mono" style="color:${p.lag > 30 ? 'var(--status-negative)' : p.lag > 24 ? 'var(--status-warning)' : 'var(--status-positive)'}">${p.lag}</td>
+                <td>${p.issue === 'None' ? Components.tag('None','positive') : `<span class="tag tag-warning">${p.issue}</span>`}</td>
+              </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px 0">No project rows available</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:10px 16px 12px;background:rgba(59,130,246,0.04);border-top:1px solid var(--border-subtle);font-size:10px;color:var(--text-secondary);line-height:1.7">
+          <strong style="color:var(--accent-blue)">Data notes:</strong>
+          Status is indicative — derived from LoA dates and standard SECI commissioning terms, not from BSE Reg-30 commissioning intimations ·
+          State = "ISTS" where exact plant location is not confirmed (CEA plant-wise is robots-blocked) ·
+          SECI-XV MW splits are indicative (~400 MW each; per-developer allocation not publicly disclosed) ·
+          Lag = months from LoA to projected COD (18 mo Solar; 24 mo Solar+BESS); coloured green ≤24 · amber 25–30 · red >30
+        </div>
+        <div style="padding:8px 16px;border-top:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="source-chip manual" style="background:rgba(59,130,246,0.1);color:#3b82f6;border-color:rgba(59,130,246,0.25)"><i class="fa-solid fa-file-arrow-down"></i> SEED · SECI</span>
+          <span class="chart-source">
+            <a href="https://www.seci.co.in/tenders" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:none">SECI tenders</a> ·
+            Mercom India Aug 2024 · Power Line Dec 27 2024 · SE Mar 2025 · IESA ESS Oct 2025 ·
+            ${refreshLine}
+          </span>
+        </div>
+      </div>
+    </div>
   </div>
   `;
 

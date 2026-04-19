@@ -110,40 +110,37 @@ const EXEC_BLOCKS = [
   {
     id:     'block-delay-reasons',
     title:  'Delay Reason Analysis',
-    status: EXEC_BLOCK_STATUS.MOCK,
-    dataFile: 'js/mock-data.js (MOCK.execution.delayReasons)',
-    sources: [
-      'https://mnre.gov.in/en/physical-progress/',
-      'https://www.bseindia.com/corporates/ann.html',
-    ],
-    loader: null,  // step 5 — likely cannot be fully sourced; candidate to mark UNAVAILABLE.
-    notes:  'No structured public taxonomy of delay reasons at quarterly cadence. Expected lowest-yield block.',
+    status: EXEC_BLOCK_STATUS.UNAVAILABLE,
+    dataFile: null,
+    sources: [],
+    loader: null,
+    notes:  'No structured quarterly delay taxonomy exists in any public source. MNRE reports the aggregate gap; CEA plant-wise is robots-blocked; BSE/NSE filings are project-level, not aggregated by category. Marked UNAVAILABLE.',
   },
   {
     id:     'block-upcoming-cod',
     title:  'Upcoming COD Timeline',
-    status: EXEC_BLOCK_STATUS.MOCK,
-    dataFile: 'js/mock-data.js (MOCK.execution.upcomingCOD)',
+    status: EXEC_BLOCK_STATUS.REAL,
+    dataFile: 'js/real-data-cod-timeline.js (COD_TIMELINE_ROWS)',
     sources: [
+      'https://www.seci.co.in/tenders',
       'https://www.bseindia.com/corporates/ann.html',
       'https://www.nseindia.com/companies-listing/corporate-filings-announcements',
-      'https://www.seci.co.in/tenders',
     ],
-    loader: null,  // step 3 — curate from BSE Reg-30 commissioning notices + SECI award schedule.
-    notes:  'Buildable from Reg-30 "intimation of commissioning" notices on BSE/NSE and known SECI award dates.',
+    loader: execLoadCodTimeline,
+    notes:  'Seed: projected COD = LoA date + standard SECI commissioning term (18 mo Solar; 24 mo Solar+BESS). Derived from confirmed SECI/GUVNL award records. No BSE Reg-30 confirmed commissioning intimations included yet — listed developer filings will supersede when available.',
   },
   {
     id:     'table-project-detail',
     title:  'Project Execution Detail Table',
-    status: EXEC_BLOCK_STATUS.MOCK,
-    dataFile: 'js/mock-data.js (MOCK.execution.projectTable)',
+    status: EXEC_BLOCK_STATUS.REAL,
+    dataFile: 'js/real-data-project-table.js (PROJECT_TABLE_ROWS)',
     sources: [
-      'https://cea.nic.in/rpm/plant-wise-details-of-renewable-energy-projects/?lang=en',
-      'https://www.bseindia.com/corporates/ann.html',
       'https://www.seci.co.in/tenders',
+      'https://www.bseindia.com/corporates/ann.html',
+      'https://cea.nic.in/rpm/plant-wise-details-of-renewable-energy-projects/?lang=en',
     ],
-    loader: null,  // step 4 — rebuild from BSE Reg-30 + SECI award records already in repo.
-    notes:  'CEA plant-wise is the ideal source but blocked; use BSE Reg-30 project notices + existing SECI award records (real-data-tenders-flow.js).',
+    loader: execLoadProjectTable,
+    notes:  'Seed: derived from confirmed SECI/GUVNL award records. State for ISTS projects not confirmed (CEA plant-wise is robots-blocked). Lag = months from LoA to projected COD. Status is indicative from award date + LOA term, not from BSE Reg-30 commissioning intimations.',
   },
 ];
 
@@ -219,6 +216,20 @@ async function execLoadUcPipeline() {
     return { source: 'unavailable', reason: 'cea-blocked-or-insufficient', quarters: qs.length };
   }
   return { source: 'live', quarters: qs.length, asOf: qs[qs.length - 1].periodEnd };
+}
+
+async function execLoadCodTimeline() {
+  if (typeof COD_TIMELINE_ROWS === 'undefined' || !Array.isArray(COD_TIMELINE_ROWS) || !COD_TIMELINE_ROWS.length) {
+    throw new Error('COD_TIMELINE_ROWS (seed) not loaded');
+  }
+  return { source: 'seed', entries: COD_TIMELINE_ROWS.length, asOf: COD_TIMELINE_META.cutoffDate };
+}
+
+async function execLoadProjectTable() {
+  if (typeof PROJECT_TABLE_ROWS === 'undefined' || !Array.isArray(PROJECT_TABLE_ROWS) || !PROJECT_TABLE_ROWS.length) {
+    throw new Error('PROJECT_TABLE_ROWS (seed) not loaded');
+  }
+  return { source: 'seed', rows: PROJECT_TABLE_ROWS.length, asOf: PROJECT_TABLE_META.cutoffDate };
 }
 
 /* Commissioned-KPI derivation — same live bundle, no extra call */
