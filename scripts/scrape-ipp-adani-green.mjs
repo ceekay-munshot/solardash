@@ -415,12 +415,52 @@ function _isNonZeroValue(v) {
 function _isPlausibleDate(s) {
   // Accept dates within last 18 months only (avoid stale hallucinations).
   if (!s || typeof s !== 'string') return true;               // unknown → keep
-  // Look for a 4-digit year.
   const yearMatch = s.match(/\b(20\d{2})\b/);
   if (!yearMatch) return true;                                // no year → keep (relative date)
   const year = parseInt(yearMatch[1], 10);
   const now  = new Date().getFullYear();
   return year >= (now - 1) && year <= now + 1;                // window: prev / current / next year
+}
+
+/* Catches the LLM's "Q2 FY23" / "Q4 FY22" / "FY24" stale references when the
+   current year is FY26 (Apr 2025 - Mar 2026) or later. Only allow current FY
+   and the immediately-preceding FY. */
+function _isPlausibleFYQuarter(s) {
+  if (!s || typeof s !== 'string') return true;
+  const m = s.match(/FY\s*(\d{2,4})/i);
+  if (!m) return true;
+  let year = parseInt(m[1], 10);
+  if (year < 100) year = 2000 + year;
+  const nowY  = new Date().getFullYear();
+  const nowM  = new Date().getMonth();
+  const currentFY = nowM >= 3 ? nowY + 1 : nowY;             // FY ends Mar; FY26 = Apr2025-Mar2026
+  return year >= (currentFY - 1) && year <= (currentFY + 1);
+}
+
+/* Detects LLM placeholder strings like "Project A", "Location B", "TBD",
+   "Example Solar Park", "Site 1", etc. */
+function _isPlaceholderName(s) {
+  if (!s || typeof s !== 'string') return false;
+  const t = s.trim();
+  if (/^(Project|Location|Site|Example|Sample|Plant|Facility|Park)\s+[A-Z]\b/i.test(t)) return true;
+  if (/^(Project|Location|Site)\s*\d{1,2}\s*$/i.test(t)) return true;
+  if (/lorem ipsum/i.test(t)) return true;
+  if (/placeholder/i.test(t)) return true;
+  if (/example/i.test(t) && t.length < 40) return true;
+  return false;
+}
+
+/* True if the mix dictionary looks like LLM defaults: all values multiples
+   of 5 AND all values are >= 10. Real portfolio mixes have fractional %s. */
+function _isSuspiciousMix(m) {
+  if (!m) return false;
+  const vals = [m.Solar, m.Wind, m.Hybrid, m.FDRE].filter(v => typeof v === 'number');
+  if (vals.length < 4) return false;
+  const allRound = vals.every(v => v % 5 === 0 && v >= 10);
+  // Specific known-bad pattern: 40/30/20/10
+  const pattern = vals.slice().sort((a, b) => b - a).join(',');
+  if (pattern === '40,30,20,10' || pattern === '50,30,15,5' || pattern === '60,20,10,10') return true;
+  return false;
 }
 
 /* ─── Normalise scraped data into the final JSON shape ──────────────────── */
@@ -430,25 +470,33 @@ function normalise(opData, finData, annData, presData) {
   const ann = annData?.extracted || {};
   const pre = presData?.extracted || {};
 
-  /* ── kpi (operational MW figures) ── */
+  /* ── kpi (operational MW figures) ──
+     If the asOf reference is stale (e.g. "Q2 FY23" when current is FY26),
+     reject the WHOLE kpi block — it's almost certainly LLM hallucination
+     from a chart label or made up entirely. Real current data carries a
+     current-FY label. */
   const kpi = {};
-  if (_isPositiveNum(op.operatingCapacityMW)) {
+  const opAsOf = op.operatingCapacityAsOf;
+  const asOfPlausible = _isPlausibleFYQuarter(opAsOf) && _isPlausibleDate(opAsOf);
+
+  if (_isPositiveNum(op.operatingCapacityMW) && asOfPlausible) {
     kpi.opCapacity     = _fmtMW(op.operatingCapacityMW);
-    kpi.opCapacityAsOf = op.operatingCapacityAsOf || null;
+    kpi.opCapacityAsOf = opAsOf || null;
   }
-  if (_isPositiveNum(op.underConstructionMW)) {
+  if (_isPositiveNum(op.underConstructionMW) && asOfPlausible) {
     kpi.ucCapacity     = _fmtMW(op.underConstructionMW);
-    kpi.ucCapacityAsOf = op.operatingCapacityAsOf || null;
+    kpi.ucCapacityAsOf = opAsOf || null;
   }
-  if (_isPositiveNum(op.signedPPAMW)) {
+  if (_isPositiveNum(op.signedPPAMW) && asOfPlausible) {
     kpi.ppa            = _fmtMW(op.signedPPAMW);
-    kpi.ppaAsOf        = op.operatingCapacityAsOf || null;
+    kpi.ppaAsOf        = opAsOf || null;
   }
-  if (_isNonZeroValue(op.capexGuidance)) {
+  if (_isNonZeroValue(op.capexGuidance) && _isPlausibleFYQuarter(op.capexPeriod)) {
     kpi.capex          = op.capexGuidance;
     kpi.capexPeriod    = op.capexPeriod || null;
   }
-  if (_isPositiveNum(op.targetCapacityGW)) {
+  if (_isPositiveNum(op.targetCapacityGW) && op.targetCapacityGW >= 30) {
+    // Adani's stated 2030 target is 50 GW — anything below 30 GW is suspect.
     kpi.targetGW       = op.targetCapacityGW;
   }
 
@@ -478,21 +526,24 @@ function normalise(opData, finData, annData, presData) {
   }
 
   /* ── mix (portfolio technology %) ──
-     Reject if percentages don't sum to ~100 (a sign the LLM made it up). */
+     Reject if percentages don't sum to ~100, OR if the pattern looks like
+     LLM defaults (40/30/20/10 etc). */
   let mix = null;
   if (op.portfolioMix && typeof op.portfolioMix === 'object') {
     const m = op.portfolioMix;
     const sum = (m.Solar||0) + (m.Wind||0) + (m.Hybrid||0) + (m.FDRE||0);
-    if (sum >= 90 && sum <= 110) {                            // tolerate ±10pp rounding
+    if (sum >= 90 && sum <= 110 && !_isSuspiciousMix(m)) {
       mix = { Solar: m.Solar||0, Wind: m.Wind||0, Hybrid: m.Hybrid||0, FDRE: m.FDRE||0 };
     }
   }
 
   /* ── cod (upcoming COD timeline) ──
-     Drop entries with no MW or no project name. */
+     Drop entries with no MW, no project name, or placeholder names like
+     "Project A" / "Location B". */
   const cod = Array.isArray(op.upcomingCODs) && op.upcomingCODs.length > 0
     ? op.upcomingCODs
         .filter(c => _isPositiveNum(c.capacityMW) && c.projectName && c.expectedDate)
+        .filter(c => !_isPlaceholderName(c.projectName) && !_isPlaceholderName(c.location))
         .filter(c => _isPlausibleDate(c.expectedDate))
         .map(c => ({
           date:    c.expectedDate,
@@ -675,25 +726,52 @@ for (const [k, v] of Object.entries(fields)) {
 }
 
 // Show what raw values were rejected (if any) — helps debug bad extraction.
-const rawFin = results.finData?.extracted || {};
+const rawOp  = results.opData?.extracted   || {};
+const rawFin = results.finData?.extracted  || {};
+const rawAnn = results.annData?.extracted?.announcements;
 const rejected = [];
+
+if (rawOp.operatingCapacityAsOf && !_isPlausibleFYQuarter(rawOp.operatingCapacityAsOf)) {
+  rejected.push(`kpi: stale asOf "${rawOp.operatingCapacityAsOf}" (rejected entire kpi block)`);
+}
+if (rawOp.portfolioMix && _isSuspiciousMix(rawOp.portfolioMix)) {
+  rejected.push(`mix: pattern ${JSON.stringify(rawOp.portfolioMix)} looks like LLM default`);
+}
+if (Array.isArray(rawOp.upcomingCODs)) {
+  const placeholder = rawOp.upcomingCODs.filter(c =>
+    _isPlaceholderName(c.projectName) || _isPlaceholderName(c.location)
+  ).length;
+  if (placeholder > 0) rejected.push(`${placeholder}/${rawOp.upcomingCODs.length} cod entries had placeholder names ("Project A" etc.)`);
+}
+
 if (rawFin.netDebtCr != null && (!_isPositiveNum(rawFin.netDebtCr) || rawFin.netDebtCr <= 1000)) {
-  rejected.push(`fin.netDebtCr=${rawFin.netDebtCr} (LLM hallucinated default)`);
+  rejected.push(`fin.netDebtCr=${rawFin.netDebtCr} (implausibly small for AGEL)`);
 }
 if (rawFin.netDebtEbitda != null && (!_isPositiveNum(rawFin.netDebtEbitda) || rawFin.netDebtEbitda <= 0.1)) {
-  rejected.push(`fin.netDebtEbitda=${rawFin.netDebtEbitda}`);
+  rejected.push(`fin.netDebtEbitda=${rawFin.netDebtEbitda} (LLM default)`);
 }
-const rawAnn = results.annData?.extracted?.announcements;
+
 if (Array.isArray(rawAnn)) {
   const fakeUrls = rawAnn.filter(a => a.filingUrl && !_isLikelyRealBseUrl(a.filingUrl)).length;
-  if (fakeUrls > 0) rejected.push(`${fakeUrls}/${rawAnn.length} announcement filingUrls looked fake`);
+  if (fakeUrls > 0) rejected.push(`${fakeUrls}/${rawAnn.length} announcement filingUrls were sequential/fake`);
   const staleAnn = rawAnn.filter(a => a.date && !_isPlausibleDate(a.date)).length;
   if (staleAnn > 0) rejected.push(`${staleAnn}/${rawAnn.length} announcements had stale dates`);
 }
+
 if (rejected.length > 0) {
   console.log('\nRejected (suspect hallucinations):');
   rejected.forEach(r => console.log(`  ⚠ ${r}`));
   console.log('  → these fields stay on MOCK rather than display invented "REAL" values.');
+}
+
+// Honest summary about Firecrawl extraction quality
+const realFieldsCount = Object.values(fields).filter(v => v != null).length;
+if (realFieldsCount === 0) {
+  console.log('\n⚠ All fields rejected. The pages Firecrawl scraped do not appear to');
+  console.log('  contain extractable data (likely JS-only or anti-bot blocked).');
+  console.log('  The dashboard will continue to show MOCK truthfully for Adani Green.');
+} else if (realFieldsCount < 3) {
+  console.log(`\n${realFieldsCount}/5 fields populated with REAL data. Other fields stay on MOCK.`);
 }
 
 console.log('\nNext:');
