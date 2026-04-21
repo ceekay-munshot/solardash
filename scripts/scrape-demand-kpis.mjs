@@ -7,11 +7,24 @@
    KPIs:
      1. totalSolarGW    — MNRE Physical Progress PDF  (all-India solar MW)
      2. solarSharePct   — CEA Executive Summary PDF   (solar BU / total BU × 100)
-     3. peakDemandMW    — Grid India Monthly Report   (FY YTD peak)
+     3. peakDemandMW    — Grid India PSP daily report (monthly peak demand)
      4. demandGrowthPct — CEA Executive Summary PDF   (FY req BU YoY %)
 
-   All sources are official, direct-document URLs.
+   All sources are official direct-document URLs (no ministry homepages).
    The script never hardcodes numbers — only URLs.
+
+   FALLBACK STRATEGY
+   -----------------
+   The Indian gov listing pages (mnre.gov.in, cea.nic.in, grid-india.in) are
+   intermittently unreachable via Firecrawl (rate-limiting / IP blocks).
+   Direct fetch() from Node is also rejected (no browser UA).
+
+   Solution: every source has a directTry fallback list — URLs sent straight
+   to Firecrawl without probing first. Firecrawl uses a real browser and can
+   reach PDF files the gov servers would otherwise block. The fallback list
+   always starts with the most-recently confirmed working URL (hardcoded as
+   LAST_KNOWN_* consts) so a stale-but-valid value is available immediately
+   if newer months haven't been posted yet.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { writeFile, mkdir } from 'node:fs/promises';
@@ -24,7 +37,7 @@ const API_KEY = process.env.FIRECRAWL_API_KEY;
 if (!API_KEY) { console.error('FIRECRAWL_API_KEY required'); process.exit(2); }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   SHARED ROUTINE — one function for every URL in this script
+   SHARED FIRECRAWL ROUTINE — used for every URL in this script
    ══════════════════════════════════════════════════════════════════════════ */
 async function fc(url, { schema, prompt, waitFor = 3000 } = {}) {
   const formats = ['markdown'];
@@ -41,227 +54,183 @@ async function fc(url, { schema, prompt, waitFor = 3000 } = {}) {
   return { md: (p.data||{}).markdown || '', x: (p.data||{}).extract ?? null };
 }
 
-/* ── Extract the first URL in markdown text matching a regex ────────────── */
 function firstUrl(md, re) {
   const m = md.match(re);
   return m ? m[0] : null;
 }
 
-/* ── Try a list of candidate URLs, return first that resolves (HTTP 200) ──
-   Uses GET with a 1-byte Range header (HEAD is often blocked/misconfigured
-   on older IIS/Apache setups behind these gov sites). */
-async function firstOk(urls) {
-  for (const u of urls) {
-    try {
-      const r = await fetch(u, { method: 'GET', headers: { Range: 'bytes=0-0' } });
-      if (r.ok || r.status === 206) return u;
-    } catch { /* skip */ }
-  }
-  return null;
-}
-
 /* ══════════════════════════════════════════════════════════════════════════
-   SOURCE CONFIGS  — change URLs here, nowhere else
+   SOURCE CONFIGS — change URLs here, nowhere else
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Source A: MNRE Physical Progress listing page
-   PDF lives on S3-backed CDN; URL changes each month when MNRE posts new data. */
-const MNRE_PAGE    = 'https://mnre.gov.in/en/physical-progress/';
-const MNRE_RE      = /https?:\/\/cdnbbsr\.s3waas\.gov\.in\/[^\s"')]+\.pdf/;
+/* ── MNRE Physical Progress
+   PDF on S3-CDN; URL changes monthly. Listing page reveals the new URL.
+   LAST_KNOWN_MNRE_PDF: confirmed working as of April 2026 scrape run.
+   Update this const after each successful scrape for a new month. */
+const MNRE_PAGE         = 'https://mnre.gov.in/en/physical-progress/';
+const MNRE_RE           = /https?:\/\/cdnbbsr\.s3waas\.gov\.in\/[^\s"')]+\.pdf/;
+const LAST_KNOWN_MNRE_PDF =
+  'https://cdnbbsr.s3waas.gov.in/s3716e1b8c6cd17b771da77391355749f3/uploads/2026/04/20260415955675604.pdf';
 
-/* Source B: CEA Executive Summary — power sector summary PDF (monthly)
-   Page lists downloadable PDFs; URL changes each month.
-   Fallback: construct URL from known naming pattern (last 3 months). */
-const CEA_EXEC_PAGE = 'https://cea.nic.in/executive-summary-report/?lang=en';
-const CEA_EXEC_RE   = /https?:\/\/cea\.nic\.in\/wp-content\/uploads\/executive\/[^\s"')]+\.pdf/;
+/* ── CEA Executive Summary
+   Published monthly at a consistent path pattern. Listing page reveals the
+   exact filename. LAST_KNOWN_CEA_PDF: Feb 2026 confirmed working.
+   Update after each successful run. */
+const CEA_EXEC_PAGE     = 'https://cea.nic.in/executive-summary-report/?lang=en';
+const CEA_EXEC_RE       = /https?:\/\/cea\.nic\.in\/wp-content\/uploads\/executive\/[^\s"')]+\.pdf/;
+const LAST_KNOWN_CEA_PDF =
+  'https://cea.nic.in/wp-content/uploads/executive/2026/02/Executive_Summary_February_2026_Actual.pdf';
 
 function ceaFallbackUrls() {
+  // Try recent months newest-first; each month tries the 3 most common filename patterns.
+  // "_Actual" = correct spelling used in FY26+ files (confirmed).
+  // "_Aztual_updated" = legacy typo spelling used in FY25 and earlier files.
   const months = ['January','February','March','April','May','June',
                   'July','August','September','October','November','December'];
   const abbr   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const now    = new Date();
   const urls   = [];
-  for (let delta = 1; delta <= 3; delta++) {
-    const d  = new Date(now.getFullYear(), now.getMonth() - delta, 1);
-    const y  = d.getFullYear();
-    const m0 = String(d.getMonth() + 1).padStart(2, '0');
-    const mn = months[d.getMonth()];
-    const ma = abbr[d.getMonth()];
-    // published folder is same month or one month later
+  for (let delta = 1; delta <= 4; delta++) {
+    const d   = new Date(now.getFullYear(), now.getMonth() - delta, 1);
+    const y   = d.getFullYear();
+    const m0  = String(d.getMonth() + 1).padStart(2, '0');
+    const mn  = months[d.getMonth()];
+    const ma  = abbr[d.getMonth()];
+    // published folder = same month or month+1
     for (const pub of [m0, String(d.getMonth() + 2).padStart(2, '0')]) {
       const base = `https://cea.nic.in/wp-content/uploads/executive/${y}/${pub}`;
-      // Correct spelling variants (FY26+ use "Actual" not "Aztual")
-      urls.push(`${base}/Executive_Summary_${mn}_${y}_Actual.pdf`);
-      urls.push(`${base}/Executive_Summary_${mn}_${y}_Actual_Updated.pdf`);
-      urls.push(`${base}/Executive_Summary_${mn}_${y}_Actual_updated.pdf`);
-      // Older typo-spelling (FY25 and earlier)
-      urls.push(`${base}/Executive_Summary_${mn}_${y}_Aztual_updated.pdf`);
-      urls.push(`${base}/Executive_Summary_${mn}_${y}_Aztual_Updated.pdf`);
-      // Short month abbreviation variants
+      urls.push(`${base}/Executive_Summary_${mn}_${y}_Actual.pdf`);         // FY26+
+      urls.push(`${base}/Executive_Summary_${mn}_${y}_Aztual_updated.pdf`); // FY25-
       urls.push(`${base}/Executive_Summary_${ma}_${y}_Actual.pdf`);
       urls.push(`${base}/Executive_Summary_${ma}_${y}_Aztual_updated.pdf`);
-      urls.push(`${base}/Executive_Summary_${ma}_${y}.pdf`);
       urls.push(`${base}/executive.pdf`);
     }
   }
+  // Guaranteed fallback — confirmed working, may be 1-2 months stale
+  urls.push(LAST_KNOWN_CEA_PDF);
   return urls;
 }
 
-/* Source C: Grid India Monthly Reports listing page.
-   Fallback chain: known monthly executive summary PDFs → live PSP page. */
-const GRID_PAGE  = 'https://grid-india.in/en/reports/monthly-reports/';
-const GRID_RE    = /https?:\/\/(?:report\.)?grid-india\.in\/[^\s"')]+\.pdf/;
+/* ── Grid India PSP daily reports
+   Path: /ReportData/Daily Report/PSP Report/{FY}/{Month YYYY}/{DD.MM.YY}_NLDC_PSP.pdf
+   PSP server rejects all probe methods (HEAD, Range GET) from Node but works
+   fine when fetched via Firecrawl's browser. Use directTry mode.
+   Try mid-month days (fewer holidays) for the last 3 months. */
+const GRID_PAGE = 'https://grid-india.in/en/reports/monthly-reports/';
+const GRID_RE   = /https?:\/\/(?:report\.)?grid-india\.in\/[^\s"')]+\.pdf/i;
 
 function gridFallbackUrls() {
-  // PSP daily PDFs at report.grid-india.in follow:
-  //   /ReportData/Daily%20Report/PSP%20Report/{FY}/{Month%20YYYY}/{DD.MM.YY}_NLDC_PSP.pdf
-  // The report is not published every day (weekends/holidays skipped), so try
-  // several candidate days for each recent month.
-  const months = ['January','February','March','April','May','June',
-                  'July','August','September','October','November','December'];
+  const monthNames = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
   const now  = new Date();
   const urls = [];
-  // Try days 15, 20, 25, 10, 5 for each of the last 3 months
-  const candidateDays = [15, 20, 25, 10, 5];
+  const days = [17, 18, 16, 15, 20, 19, 12, 14, 21, 22];  // weekday-safe days
   for (let delta = 1; delta <= 3; delta++) {
-    const base = new Date(now.getFullYear(), now.getMonth() - delta + 1, 1);
-    const year = base.getFullYear();
-    const monthIdx = base.getMonth() === 0 ? 11 : base.getMonth() - 1;
-    // Use the month before `base` (i.e. the target month at delta offset)
-    const target = new Date(year, monthIdx, 1);
-    const ty = target.getFullYear();
-    const tm = target.getMonth();
-    const mName = months[tm];
-    const mm = String(tm + 1).padStart(2, '0');
-    const yy = String(ty).slice(-2);
-    const fy = tm >= 3 ? `${ty}-${ty + 1}` : `${ty - 1}-${ty}`;
-    for (const day of candidateDays) {
+    const d   = new Date(now.getFullYear(), now.getMonth() - delta, 1);
+    const ty  = d.getFullYear();
+    const tm  = d.getMonth();
+    const mn  = monthNames[tm];
+    const mm  = String(tm + 1).padStart(2, '0');
+    const yy  = String(ty).slice(-2);
+    const fy  = tm >= 3 ? `${ty}-${ty + 1}` : `${ty - 1}-${ty}`;
+    for (const day of days) {
       const dd = String(day).padStart(2, '0');
       urls.push(
-        `https://report.grid-india.in/ReportData/Daily%20Report/PSP%20Report/${fy}/${mName}%20${ty}/${dd}.${mm}.${yy}_NLDC_PSP.pdf`
+        `https://report.grid-india.in/ReportData/Daily%20Report/PSP%20Report/${fy}/${mn}%20${ty}/${dd}.${mm}.${yy}_NLDC_PSP.pdf`
       );
     }
   }
-  // Live PSP page as last resort (shows current day only)
-  urls.push('https://report.grid-india.in/psp_report.php');
   return urls;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   EXTRACTION SCHEMAS — one per source, reusing the shared fc() routine
+   EXTRACTION SCHEMAS
    ══════════════════════════════════════════════════════════════════════════ */
 const MNRE_SCHEMA = {
   type: 'object', properties: {
-    dataAsOf:         { type: 'string', description: 'Date the data covers, e.g. "31 March 2026" — appears in the document title or caption' },
-    totalSolarMW:     { type: 'number', description: 'ALL-INDIA grand total solar installed capacity in MW — the single number in the "Grand Total" or "All India" summary row under the "Solar Power Total" column. This should be the sum of all states and is typically 140,000–200,000 MW (140–200 GW) as of 2026. Do NOT return a single state\'s solar capacity.' },
-    groundMountedMW:  { type: 'number', description: 'Grand total ground-mounted solar (GMS) in MW — also from the Grand Total row' },
-    rooftopMW:        { type: 'number', description: 'Grand total rooftop solar (RTS / PM-Surya Ghar) in MW — Grand Total row' },
+    dataAsOf:    { type: 'string', description: 'Date the data covers, e.g. "31 March 2026"' },
+    totalSolarMW:{ type: 'number',
+      description: 'ALL-INDIA grand total solar installed capacity in MW from the Grand Total / All India summary row under the "Solar Power Total" column. Typically ~150,000 MW in 2026. Do NOT return a single state value.' },
   },
 };
 const MNRE_PROMPT =
-  'This is the MNRE Physical Progress PDF — a table of renewable energy installed capacity by state. ' +
-  'It has 35+ state rows plus a GRAND TOTAL row at the bottom.\n\n' +
-  'Extract ONLY from the GRAND TOTAL (all-India summary) row:\n' +
-  '  • totalSolarMW — the "Solar Power Total" column value in the Grand Total row\n' +
-  '    (This is all-India solar and is typically printed as ~150,000 in 2026)\n' +
-  '  • groundMountedMW — ground-mounted solar grand total\n' +
-  '  • rooftopMW — rooftop solar grand total\n' +
-  '  • dataAsOf — date of the report shown in the title/heading\n\n' +
-  'CRITICAL: Return the Grand Total row numbers only. ' +
-  'Do NOT return Rajasthan (41,000 MW), Gujarat (29,000 MW) or any other single state. ' +
-  'If you cannot find the Grand Total row, return null for all fields.';
+  'This is the MNRE Physical Progress PDF — a table of renewable energy installed capacity by state with a GRAND TOTAL row. ' +
+  'Extract ONLY from the GRAND TOTAL (all-India) row: ' +
+  'totalSolarMW (the "Solar Power Total" column in the Grand Total row, ~150,000 in 2026) ' +
+  'and dataAsOf (the report date). ' +
+  'Do NOT return Rajasthan or any other individual state figure.';
 
 const CEA_SCHEMA = {
   type: 'object', properties: {
-    reportPeriod:       { type: 'string', description: 'Cumulative FY period, e.g. "Apr 2025 – Feb 2026"' },
-    solarBU:            { type: 'number', description: 'Solar generation BU for FY cumulative period (not just the single month)' },
-    totalBU:            { type: 'number', description: 'Total all-source generation BU for FY cumulative period' },
-    fyReqBU:            { type: 'number', description: 'Energy requirement BU for current FY to date (in BU, NOT MU)' },
-    fyPriorReqBU:       { type: 'number', description: 'Energy requirement BU for same FY-to-date period of previous fiscal year (in BU, NOT MU)' },
-    reqUnits:           { type: 'string', description: 'Units used for energy requirement in the document — either "BU" or "MU"' },
-    allIndiaPeakMW:     { type: 'number', description: 'ALL-INDIA peak demand met (MW) during this report month — the national number (typically 150,000–260,000 MW range), NOT any regional peak' },
-    allIndiaPeakDate:   { type: 'string', description: 'Date on which the all-India peak occurred (e.g. "15 Feb 2026")' },
+    reportPeriod:    { type: 'string', description: 'Cumulative FY period e.g. "Apr 2025 – Feb 2026"' },
+    solarBU:         { type: 'number', description: 'Solar generation BU for the cumulative FY period (not just the single month)' },
+    totalBU:         { type: 'number', description: 'Total all-source generation BU for the same cumulative FY period' },
+    fyReqBU:         { type: 'number', description: 'Energy requirement for current FY to date — in BU or MU as printed' },
+    fyPriorReqBU:    { type: 'number', description: 'Energy requirement for same FY-to-date period of previous fiscal year — same units' },
+    reqUnits:        { type: 'string', description: '"BU" or "MU" — the units used for energy requirement in the document' },
+    allIndiaPeakMW:  { type: 'number',
+      description: 'ALL-INDIA (national) peak demand met in MW. Must be 150,000–260,000 range. Do NOT return a regional peak (NR/WR/SR/ER/NER which are 50,000–90,000 MW).' },
+    allIndiaPeakDate:{ type: 'string', description: 'Date the all-India peak occurred e.g. "15 Feb 2026"' },
   },
 };
 const CEA_PROMPT =
-  'This is the CEA Executive Summary on Power Sector (India). Extract the following ALL-INDIA figures:\n' +
-  '1. solarBU — Solar generation in Billion Units for the cumulative FY-to-date period (not just the single month column)\n' +
-  '2. totalBU — Total generation BU for the same cumulative FY period\n' +
-  '3. fyReqBU — Energy requirement (BU) for current FY to date — ALL-INDIA total\n' +
-  '4. fyPriorReqBU — Energy requirement (BU) for same period in prior FY — ALL-INDIA total\n' +
-  '5. reqUnits — Whether the energy requirement figures in the document are in BU or MU\n' +
-  '6. allIndiaPeakMW — The ALL-INDIA (national) peak demand met in MW. Do NOT return a regional peak (NR, WR, SR, ER, NER are regional and smaller, typically 50,000-90,000 MW). The all-India peak is much larger, typically 150,000–260,000 MW\n' +
-  '7. allIndiaPeakDate — date of the all-India peak\n' +
-  '8. reportPeriod — the date range the cumulative figures cover\n\n' +
-  'CRITICAL: For peak demand, return only the ALL-INDIA national figure. ' +
-  'Regional peaks are smaller — do not confuse with the national peak.\n' +
-  'Return null for any value not explicitly in the document. Do not guess.';
+  'CEA Executive Summary on Power Sector (India). Extract ALL-INDIA figures:\n' +
+  '  solarBU — cumulative FY solar generation in BU (not single month)\n' +
+  '  totalBU — cumulative FY total generation in BU\n' +
+  '  fyReqBU / fyPriorReqBU — energy requirement current vs prior FY-to-date\n' +
+  '  reqUnits — "BU" or "MU"\n' +
+  '  allIndiaPeakMW — NATIONAL peak demand in MW (150k–260k range). NOT a regional peak.\n' +
+  '  reportPeriod — cumulative date range\n' +
+  'Return null for anything not explicitly in the document.';
 
 const GRID_SCHEMA = {
   type: 'object', properties: {
-    fyPeakMW:     { type: 'number', description: 'Maximum peak demand met (MW) for FY 2025-26 year-to-date, if explicitly stated in the document' },
-    fyPeakDate:   { type: 'string', description: 'Date on which FY 2025-26 peak occurred, e.g. "09 Jan 2026"' },
-    monthPeakMW:  { type: 'number', description: 'Maximum peak demand met (MW) during this specific report month (the "Max Demand Met" figure for the month)' },
-    monthName:    { type: 'string', description: 'The month this report covers, e.g. "March 2026"' },
-    totalEnergyMU:{ type: 'number', description: 'Total energy met/generated in Million Units (MU) for the month' },
+    monthPeakMW:  { type: 'number', description: 'Maximum demand met in MW for this report day/month (national all-India figure, typically 150,000–260,000 MW)' },
+    reportDate:   { type: 'string', description: 'Date this report covers e.g. "17 March 2026"' },
+    energyMetMU:  { type: 'number', description: 'Total energy met in MU for this report day or month period' },
   },
 };
 const GRID_PROMPT =
-  'This is a Grid India (NLDC) Power System Performance (PSP) report for India FY 2025-26.\n' +
-  'Extract:\n' +
-  '  • fyPeakMW — if the report explicitly states the FY 2025-26 all-year peak demand in MW, extract it\n' +
-  '  • fyPeakDate — date the FY peak occurred (e.g. "09 Jan 2026")\n' +
-  '  • monthPeakMW — the "Maximum Demand Met" in MW for this specific month (typically 150,000–260,000 MW range)\n' +
-  '  • monthName — which month this report is for\n' +
-  '  • totalEnergyMU — total energy met in MU for the month\n\n' +
-  'For India: peak demand is 150,000–260,000 MW (150–260 GW). ' +
-  'Return null for any field not explicitly in the document.';
+  'Grid India NLDC Power System Performance (PSP) report. ' +
+  'Extract the ALL-INDIA maximum demand met in MW (national figure, 150k–260k range), ' +
+  'the report date, and total energy met in MU. Return null for anything not in the document.';
 
 /* ══════════════════════════════════════════════════════════════════════════
    SCRAPE EACH SOURCE
+   directTry = true: skip probing, send each fallback URL to Firecrawl until
+     one returns non-null extracted data. Needed when direct fetch() is blocked.
+   directTry = false (default): use listing page only; no URL-probe fallback.
    ══════════════════════════════════════════════════════════════════════════ */
-/* scrapeSource — two modes for fallback URL resolution:
-     probeFirst (default): HEAD/Range-probe the candidate list, then scrape the
-       winner. Works for CEA/MNRE where servers accept standard requests.
-     directTry: skip the probe entirely, send each candidate URL straight to
-       Firecrawl until one extracts non-null data. Needed for Grid India's PSP
-       PDF server which rejects Range/HEAD probes but works fine via Firecrawl. */
 async function scrapeSource(label, { listPage, urlRe, fallbackUrls, schema, prompt, waitFor = 4000, directTry = false }) {
   let pdfUrl = null;
 
-  // Step 1: find PDF URL from listing page
+  // Step 1: listing page → regex PDF URL
   try {
     const { md } = await fc(listPage, { waitFor });
     pdfUrl = firstUrl(md, urlRe);
-    if (!pdfUrl) console.log(`  ${label}: listing page yielded no PDF URL — trying fallbacks`);
+    if (!pdfUrl) console.log(`  ${label}: listing page yielded no PDF link — trying fallbacks`);
   } catch (e) {
     console.log(`  ${label}: listing page failed (${e.message}) — trying fallbacks`);
   }
 
-  // Step 2: fallback
-  if (!pdfUrl && fallbackUrls?.length) {
-    if (directTry) {
-      // Send each candidate to Firecrawl directly; return first that yields extracted data
-      for (const u of fallbackUrls) {
-        try {
-          const { x } = await fc(u, { schema, prompt, waitFor });
-          if (x && Object.values(x).some(v => v !== null)) {
-            console.log(`  ${label}: fallback extracted data → ${u}`);
-            return { ok: true, url: u, type: u.toLowerCase().endsWith('.pdf') ? 'PDF' : 'HTML', data: x };
-          }
-        } catch { /* move to next candidate */ }
-      }
-      console.log(`  ${label}: all fallback URLs failed extraction`);
-    } else {
-      pdfUrl = await firstOk(fallbackUrls);
-      if (pdfUrl) console.log(`  ${label}: fallback URL resolved → ${pdfUrl}`);
-      else console.log(`  ${label}: all fallback URLs 404`);
+  // Step 2: directTry — pass each candidate directly to Firecrawl
+  if (!pdfUrl && directTry && fallbackUrls?.length) {
+    for (const u of fallbackUrls) {
+      try {
+        const { x } = await fc(u, { schema, prompt, waitFor });
+        if (x && Object.values(x).some(v => v !== null && v !== undefined)) {
+          console.log(`  ${label}: direct fallback succeeded → ${u}`);
+          return { ok: true, url: u, type: u.toLowerCase().endsWith('.pdf') ? 'PDF' : 'HTML', data: x };
+        }
+      } catch { /* Firecrawl returned error (404 / blocked) → try next */ }
     }
+    console.log(`  ${label}: all fallbacks exhausted`);
+    return { ok: false, url: listPage, error: 'All fallback URLs failed' };
   }
 
-  if (!pdfUrl) return { ok: false, url: listPage, error: 'No PDF URL found' };
+  if (!pdfUrl) return { ok: false, url: listPage, error: 'No PDF link found and no directTry fallbacks' };
 
-  // Step 3: scrape the resolved URL
+  // Step 3: scrape the discovered URL
   try {
     const { x } = await fc(pdfUrl, { schema, prompt, waitFor });
     return { ok: true, url: pdfUrl, type: pdfUrl.toLowerCase().endsWith('.pdf') ? 'PDF' : 'HTML', data: x };
@@ -278,56 +247,47 @@ function pos(n) { return typeof n === 'number' && isFinite(n) && n > 0; }
 function normalise(mnre, cea, grid) {
   const kpis = {};
 
-  // KPI 1: Total Solar GW — from MNRE Physical Progress PDF
+  // KPI 1: Total Solar GW from MNRE Physical Progress PDF
   const sm = mnre?.data?.totalSolarMW;
-  // Guard: India's solar installed base is 140,000–250,000 MW range in 2025-26
   if (pos(sm) && sm > 100000 && sm < 300000) {
     kpis.totalSolarGW = { value: +(sm / 1000).toFixed(2), asOf: mnre.data.dataAsOf || null,
                           sourceUrl: mnre.url, sourceType: 'PDF' };
   }
 
-  // KPI 2: Solar Share % — calculated from CEA source-wise generation
+  // KPI 2: Solar Share % = solar BU / total BU × 100
   const sol = cea?.data?.solarBU, tot = cea?.data?.totalBU;
-  if (pos(sol) && pos(tot) && sol < tot) {
+  if (pos(sol) && pos(tot) && sol < tot && sol > 1) {
     kpis.solarSharePct = { value: +((sol / tot) * 100).toFixed(1),
                            solarBU: sol, totalBU: tot,
                            period: cea?.data?.reportPeriod || null,
                            sourceUrl: cea.url, sourceType: 'PDF' };
   }
 
-  // KPI 3: Peak Demand FY YTD
-  //   Primary: Grid India monthly/daily report (fyPeakMW or monthPeakMW)
-  //   Fallback: CEA Executive Summary all-India peak MW
-  const gpk = grid?.data?.fyPeakMW || grid?.data?.monthPeakMW;
-  const cpk = cea?.data?.allIndiaPeakMW;   // new explicit all-India field
+  // KPI 3: Peak Demand — Grid India PSP primary, CEA all-India fallback
+  const gpk = grid?.data?.monthPeakMW;
+  const cpk = cea?.data?.allIndiaPeakMW;
   const fpk = (pos(gpk) && gpk > 100000) ? gpk
             : (pos(cpk) && cpk > 100000) ? cpk
             : null;
   if (fpk) {
-    const isFromGrid = pos(gpk) && gpk > 100000;
+    const fromGrid = pos(gpk) && gpk > 100000;
     kpis.peakDemandMW = {
       value:      fpk,
-      peakDate:   isFromGrid ? (grid.data.fyPeakDate || null) : (cea?.data?.allIndiaPeakDate || null),
-      isFYYTD:    isFromGrid && !!grid?.data?.fyPeakMW,
-      sourceUrl:  isFromGrid ? grid.url : cea.url,
+      peakDate:   fromGrid ? (grid.data.reportDate || null) : (cea?.data?.allIndiaPeakDate || null),
+      sourceUrl:  fromGrid ? grid.url : cea.url,
       sourceType: 'PDF',
-      note:       isFromGrid ? (grid.data.fyPeakMW ? 'FY YTD max' : 'monthly peak from Grid India') : 'monthly peak from CEA Executive Summary',
+      note:       fromGrid ? 'monthly peak from Grid India PSP report'
+                           : 'monthly peak from CEA Executive Summary',
     };
   }
 
-  // KPI 4: Demand Growth YoY — from CEA energy requirement comparison
-  //   LLM sometimes returns numbers in MU instead of BU. Detect by magnitude
-  //   and normalise to BU before reporting (YoY % is unit-invariant but
-  //   labels must match actual units). India FY demand is ~1400–1700 BU.
+  // KPI 4: Demand Growth YoY from CEA energy requirement comparison
+  // LLM sometimes returns MU instead of BU — detect by magnitude and normalise.
+  // India FY demand: ~1400–1700 BU  or  ~1,400,000–1,700,000 MU
   let cur = cea?.data?.fyReqBU, prv = cea?.data?.fyPriorReqBU;
   if (pos(cur) && pos(prv)) {
     const reqUnits = (cea?.data?.reqUnits || '').toUpperCase();
-    // If values look like MU (>50,000 — India's annual demand in BU is ~1700)
-    // OR if the document says "MU", divide by 1000 to get BU.
-    if (cur > 50000 || prv > 50000 || reqUnits === 'MU') {
-      cur = cur / 1000;
-      prv = prv / 1000;
-    }
+    if (cur > 50000 || prv > 50000 || reqUnits === 'MU') { cur /= 1000; prv /= 1000; }
     if (cur > 100 && prv > 100 && cur < 2500 && prv < 2500) {
       kpis.demandGrowthPct = { value: +(((cur - prv) / prv) * 100).toFixed(1),
                                 currentBU: +cur.toFixed(1), priorBU: +prv.toFixed(1),
@@ -339,19 +299,6 @@ function normalise(mnre, cea, grid) {
   return kpis;
 }
 
-/* Print raw extracted values from each source (helps debug failed validations) */
-function debugRaw(mnre, cea, grid) {
-  if (mnre?.data) {
-    console.log('\n  MNRE raw:', JSON.stringify(mnre.data));
-  }
-  if (cea?.data) {
-    console.log('  CEA raw:', JSON.stringify(cea.data));
-  }
-  if (grid?.data) {
-    console.log('  Grid raw:', JSON.stringify(grid.data));
-  }
-}
-
 /* ══════════════════════════════════════════════════════════════════════════
    MAIN
    ══════════════════════════════════════════════════════════════════════════ */
@@ -359,30 +306,37 @@ console.log('Demand-tab KPI scrape\n');
 
 const [mnre, cea, grid] = await Promise.all([
   scrapeSource('MNRE', {
-    listPage:     MNRE_PAGE,
-    urlRe:        MNRE_RE,
-    schema:       MNRE_SCHEMA,
-    prompt:       MNRE_PROMPT,
+    listPage:    MNRE_PAGE,
+    urlRe:       MNRE_RE,
+    fallbackUrls:[LAST_KNOWN_MNRE_PDF],
+    schema:      MNRE_SCHEMA,
+    prompt:      MNRE_PROMPT,
+    directTry:   true,
   }),
   scrapeSource('CEA Exec', {
-    listPage:     CEA_EXEC_PAGE,
-    urlRe:        CEA_EXEC_RE,
-    fallbackUrls: ceaFallbackUrls(),
-    schema:       CEA_SCHEMA,
-    prompt:       CEA_PROMPT,
+    listPage:    CEA_EXEC_PAGE,
+    urlRe:       CEA_EXEC_RE,
+    fallbackUrls:ceaFallbackUrls(),
+    schema:      CEA_SCHEMA,
+    prompt:      CEA_PROMPT,
+    directTry:   true,
   }),
   scrapeSource('Grid India', {
-    listPage:     GRID_PAGE,
-    urlRe:        GRID_RE,
-    fallbackUrls: gridFallbackUrls(),
-    schema:       GRID_SCHEMA,
-    prompt:       GRID_PROMPT,
-    waitFor:      6000,
-    directTry:    true,    // PSP PDF server rejects Range probes; try Firecrawl directly
+    listPage:    GRID_PAGE,
+    urlRe:       GRID_RE,
+    fallbackUrls:gridFallbackUrls(),
+    schema:      GRID_SCHEMA,
+    prompt:      GRID_PROMPT,
+    waitFor:     6000,
+    directTry:   true,
   }),
 ]);
 
-debugRaw(mnre, cea, grid);
+// Print raw extracted values for debugging
+if (mnre?.data) console.log('\n  MNRE raw:', JSON.stringify(mnre.data));
+if (cea?.data)  console.log('  CEA raw:', JSON.stringify(cea.data));
+if (grid?.data) console.log('  Grid raw:', JSON.stringify(grid.data));
+
 const kpis = normalise(mnre, cea, grid);
 const out  = {
   scrapedAt: new Date().toISOString(),
@@ -397,7 +351,6 @@ const out  = {
 await mkdir(dirname(OUT), { recursive: true });
 await writeFile(OUT, JSON.stringify(out, null, 2));
 
-// Report
 const filled = Object.keys(kpis).length;
 console.log(`\nSources:`);
 for (const [k, s] of Object.entries(out.sources))
@@ -407,5 +360,4 @@ for (const [k, v] of Object.entries(kpis))
   console.log(`  ✓ ${k}: ${JSON.stringify(v.value)} (${v.sourceUrl})`);
 if (filled < 4)
   console.log(`  ✗ ${4 - filled} KPI(s) not extracted → dashboard falls back to MOCK`);
-
 console.log(`\nWrote ${OUT}`);
