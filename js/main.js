@@ -75,6 +75,7 @@ document.addEventListener('click', (e) => {
 // its original mock behaviour. Kept deliberately minimal — no UI redesign.
 const TAB_REFRESH = {
   execution: () => (typeof refreshExecutionTab === 'function' ? refreshExecutionTab() : null),
+  ipp:       () => (typeof refreshIPPTab       === 'function' ? refreshIPPTab()       : null),
 };
 
 // ── Refresh button ──
@@ -119,7 +120,7 @@ document.getElementById('stateFilter').addEventListener('change', (e) => {
 document.getElementById('companyFilter').addEventListener('change', (e) => {
   if (currentTab === 'ipp') {
     const val = e.target.value;
-    if (val !== 'All Developers' && MOCK.ipp.companies.includes(val)) {
+    if (val !== 'All Developers' && IPP_COMPANY_NAMES.includes(val)) {
       renderIPPTab(val);
     }
   }
@@ -151,6 +152,17 @@ function showToast(message, type = 'info') {
 function init() {
   // Ensure company filter hidden by default
   document.getElementById('companyFilterGroup').style.display = 'none';
+
+  // Populate company dropdown from the canonical IPP_COMPANIES registry.
+  // This replaces hardcoded <option> elements so adding a company to
+  // real-data-ipp-companies.js automatically appears in the dropdown.
+  const compSel = document.getElementById('companyFilter');
+  IPP_COMPANY_NAMES.forEach(name => {
+    const opt = document.createElement('option');
+    opt.textContent = name;
+    compSel.appendChild(opt);
+  });
+
   // Init first tab
   switchTab('demand');
 
