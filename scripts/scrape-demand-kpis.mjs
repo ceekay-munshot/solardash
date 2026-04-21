@@ -47,12 +47,14 @@ function firstUrl(md, re) {
   return m ? m[0] : null;
 }
 
-/* ── Try a list of candidate URLs, return first that resolves (HTTP 200) ── */
+/* ── Try a list of candidate URLs, return first that resolves (HTTP 200) ──
+   Uses GET with a 1-byte Range header (HEAD is often blocked/misconfigured
+   on older IIS/Apache setups behind these gov sites). */
 async function firstOk(urls) {
   for (const u of urls) {
     try {
-      const r = await fetch(u, { method: 'HEAD' });
-      if (r.ok) return u;
+      const r = await fetch(u, { method: 'GET', headers: { Range: 'bytes=0-0' } });
+      if (r.ok || r.status === 206) return u;
     } catch { /* skip */ }
   }
   return null;
@@ -104,27 +106,36 @@ const GRID_PAGE  = 'https://grid-india.in/en/reports/monthly-reports/';
 const GRID_RE    = /https?:\/\/(?:report\.)?grid-india\.in\/[^\s"')]+\.pdf/;
 
 function gridFallbackUrls() {
-  // Grid India monthly executive summaries are stored at report.grid-india.in.
-  // The filename pattern is: {DD.MM.YY}_NLDC_PSP.pdf  (daily)
-  // Monthly summaries follow: Monthly_Report_{MonthYear}.pdf or similar.
-  // Try known PSP daily report URLs for recent months (each contains monthly peak).
+  // PSP daily PDFs at report.grid-india.in follow:
+  //   /ReportData/Daily%20Report/PSP%20Report/{FY}/{Month%20YYYY}/{DD.MM.YY}_NLDC_PSP.pdf
+  // The report is not published every day (weekends/holidays skipped), so try
+  // several candidate days for each recent month.
   const months = ['January','February','March','April','May','June',
                   'July','August','September','October','November','December'];
-  const now = new Date();
+  const now  = new Date();
   const urls = [];
-  // Try PSP reports for last day of each of the last 3 months — reliably published
+  // Try days 15, 20, 25, 10, 5 for each of the last 3 months
+  const candidateDays = [15, 20, 25, 10, 5];
   for (let delta = 1; delta <= 3; delta++) {
-    const d  = new Date(now.getFullYear(), now.getMonth() - delta + 1, 0); // last day of month
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yy = String(d.getFullYear()).slice(-2);
-    const mName = months[d.getMonth()];
-    const fy = d.getMonth() >= 3 ? `${d.getFullYear()}-${d.getFullYear() + 1}` : `${d.getFullYear() - 1}-${d.getFullYear()}`;
-    urls.push(
-      `https://report.grid-india.in/ReportData/Daily%20Report/PSP%20Report/${fy}/${mName}%20${d.getFullYear()}/${dd}.${mm}.${yy}_NLDC_PSP.pdf`
-    );
+    const base = new Date(now.getFullYear(), now.getMonth() - delta + 1, 1);
+    const year = base.getFullYear();
+    const monthIdx = base.getMonth() === 0 ? 11 : base.getMonth() - 1;
+    // Use the month before `base` (i.e. the target month at delta offset)
+    const target = new Date(year, monthIdx, 1);
+    const ty = target.getFullYear();
+    const tm = target.getMonth();
+    const mName = months[tm];
+    const mm = String(tm + 1).padStart(2, '0');
+    const yy = String(ty).slice(-2);
+    const fy = tm >= 3 ? `${ty}-${ty + 1}` : `${ty - 1}-${ty}`;
+    for (const day of candidateDays) {
+      const dd = String(day).padStart(2, '0');
+      urls.push(
+        `https://report.grid-india.in/ReportData/Daily%20Report/PSP%20Report/${fy}/${mName}%20${ty}/${dd}.${mm}.${yy}_NLDC_PSP.pdf`
+      );
+    }
   }
-  // Live PSP page as last resort
+  // Live PSP page as last resort (shows current day only)
   urls.push('https://report.grid-india.in/psp_report.php');
   return urls;
 }
@@ -155,22 +166,28 @@ const MNRE_PROMPT =
 
 const CEA_SCHEMA = {
   type: 'object', properties: {
-    reportPeriod:  { type: 'string', description: 'Cumulative FY period, e.g. "Apr 2025 – Feb 2026"' },
-    solarBU:       { type: 'number', description: 'Solar generation BU for FY cumulative period (not just the single month)' },
-    totalBU:       { type: 'number', description: 'Total all-source generation BU for FY cumulative period' },
-    fyReqBU:       { type: 'number', description: 'Energy requirement/consumption BU for current FY to date' },
-    fyPriorReqBU:  { type: 'number', description: 'Energy requirement BU for same FY-to-date period of previous fiscal year' },
-    monthPeakMW:   { type: 'number', description: "Maximum demand met (MW) during this report's month" },
+    reportPeriod:       { type: 'string', description: 'Cumulative FY period, e.g. "Apr 2025 – Feb 2026"' },
+    solarBU:            { type: 'number', description: 'Solar generation BU for FY cumulative period (not just the single month)' },
+    totalBU:            { type: 'number', description: 'Total all-source generation BU for FY cumulative period' },
+    fyReqBU:            { type: 'number', description: 'Energy requirement BU for current FY to date (in BU, NOT MU)' },
+    fyPriorReqBU:       { type: 'number', description: 'Energy requirement BU for same FY-to-date period of previous fiscal year (in BU, NOT MU)' },
+    reqUnits:           { type: 'string', description: 'Units used for energy requirement in the document — either "BU" or "MU"' },
+    allIndiaPeakMW:     { type: 'number', description: 'ALL-INDIA peak demand met (MW) during this report month — the national number (typically 150,000–260,000 MW range), NOT any regional peak' },
+    allIndiaPeakDate:   { type: 'string', description: 'Date on which the all-India peak occurred (e.g. "15 Feb 2026")' },
   },
 };
 const CEA_PROMPT =
-  'This is the CEA Executive Summary on Power Sector (India). Extract:\n' +
+  'This is the CEA Executive Summary on Power Sector (India). Extract the following ALL-INDIA figures:\n' +
   '1. solarBU — Solar generation in Billion Units for the cumulative FY-to-date period (not just the single month column)\n' +
-  '2. totalBU — Total generation BU for same cumulative period\n' +
-  '3. fyReqBU — Energy requirement BU for current FY to date\n' +
-  '4. fyPriorReqBU — Energy requirement BU for same period in the prior FY\n' +
-  '5. monthPeakMW — Maximum demand met in MW during the month\n' +
-  'reportPeriod — the date range the cumulative figures cover.\n' +
+  '2. totalBU — Total generation BU for the same cumulative FY period\n' +
+  '3. fyReqBU — Energy requirement (BU) for current FY to date — ALL-INDIA total\n' +
+  '4. fyPriorReqBU — Energy requirement (BU) for same period in prior FY — ALL-INDIA total\n' +
+  '5. reqUnits — Whether the energy requirement figures in the document are in BU or MU\n' +
+  '6. allIndiaPeakMW — The ALL-INDIA (national) peak demand met in MW. Do NOT return a regional peak (NR, WR, SR, ER, NER are regional and smaller, typically 50,000-90,000 MW). The all-India peak is much larger, typically 150,000–260,000 MW\n' +
+  '7. allIndiaPeakDate — date of the all-India peak\n' +
+  '8. reportPeriod — the date range the cumulative figures cover\n\n' +
+  'CRITICAL: For peak demand, return only the ALL-INDIA national figure. ' +
+  'Regional peaks are smaller — do not confuse with the national peak.\n' +
   'Return null for any value not explicitly in the document. Do not guess.';
 
 const GRID_SCHEMA = {
@@ -253,9 +270,9 @@ function normalise(mnre, cea, grid) {
 
   // KPI 3: Peak Demand FY YTD
   //   Primary: Grid India monthly/daily report (fyPeakMW or monthPeakMW)
-  //   Fallback: CEA Executive Summary monthPeakMW
+  //   Fallback: CEA Executive Summary all-India peak MW
   const gpk = grid?.data?.fyPeakMW || grid?.data?.monthPeakMW;
-  const cpk = cea?.data?.monthPeakMW;
+  const cpk = cea?.data?.allIndiaPeakMW;   // new explicit all-India field
   const fpk = (pos(gpk) && gpk > 100000) ? gpk
             : (pos(cpk) && cpk > 100000) ? cpk
             : null;
@@ -263,7 +280,7 @@ function normalise(mnre, cea, grid) {
     const isFromGrid = pos(gpk) && gpk > 100000;
     kpis.peakDemandMW = {
       value:      fpk,
-      peakDate:   isFromGrid ? (grid.data.fyPeakDate || null) : null,
+      peakDate:   isFromGrid ? (grid.data.fyPeakDate || null) : (cea?.data?.allIndiaPeakDate || null),
       isFYYTD:    isFromGrid && !!grid?.data?.fyPeakMW,
       sourceUrl:  isFromGrid ? grid.url : cea.url,
       sourceType: 'PDF',
@@ -271,13 +288,25 @@ function normalise(mnre, cea, grid) {
     };
   }
 
-  // KPI 4: Demand Growth YoY — from CEA energy requirement BU comparison
-  const cur = cea?.data?.fyReqBU, prv = cea?.data?.fyPriorReqBU;
-  if (pos(cur) && pos(prv) && cur > 100 && prv > 100) {
-    kpis.demandGrowthPct = { value: +(((cur - prv) / prv) * 100).toFixed(1),
-                              currentBU: cur, priorBU: prv,
-                              period: cea?.data?.reportPeriod || null,
-                              sourceUrl: cea.url, sourceType: 'PDF' };
+  // KPI 4: Demand Growth YoY — from CEA energy requirement comparison
+  //   LLM sometimes returns numbers in MU instead of BU. Detect by magnitude
+  //   and normalise to BU before reporting (YoY % is unit-invariant but
+  //   labels must match actual units). India FY demand is ~1400–1700 BU.
+  let cur = cea?.data?.fyReqBU, prv = cea?.data?.fyPriorReqBU;
+  if (pos(cur) && pos(prv)) {
+    const reqUnits = (cea?.data?.reqUnits || '').toUpperCase();
+    // If values look like MU (>50,000 — India's annual demand in BU is ~1700)
+    // OR if the document says "MU", divide by 1000 to get BU.
+    if (cur > 50000 || prv > 50000 || reqUnits === 'MU') {
+      cur = cur / 1000;
+      prv = prv / 1000;
+    }
+    if (cur > 100 && prv > 100 && cur < 2500 && prv < 2500) {
+      kpis.demandGrowthPct = { value: +(((cur - prv) / prv) * 100).toFixed(1),
+                                currentBU: +cur.toFixed(1), priorBU: +prv.toFixed(1),
+                                period: cea?.data?.reportPeriod || null,
+                                sourceUrl: cea.url, sourceType: 'PDF' };
+    }
   }
 
   return kpis;
