@@ -99,25 +99,59 @@ function ceaFallbackUrls() {
 }
 
 /* Source C: Grid India Monthly Reports listing page.
-   PDF is the most-recent monthly executive summary.
-   Fallback: live daily PSP page (has current-day peak; FY YTD note may appear). */
+   Fallback chain: known monthly executive summary PDFs → live PSP page. */
 const GRID_PAGE  = 'https://grid-india.in/en/reports/monthly-reports/';
 const GRID_RE    = /https?:\/\/(?:report\.)?grid-india\.in\/[^\s"')]+\.pdf/;
-const GRID_PSP   = 'https://report.grid-india.in/psp_report.php';
+
+function gridFallbackUrls() {
+  // Grid India monthly executive summaries are stored at report.grid-india.in.
+  // The filename pattern is: {DD.MM.YY}_NLDC_PSP.pdf  (daily)
+  // Monthly summaries follow: Monthly_Report_{MonthYear}.pdf or similar.
+  // Try known PSP daily report URLs for recent months (each contains monthly peak).
+  const months = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  const now = new Date();
+  const urls = [];
+  // Try PSP reports for last day of each of the last 3 months — reliably published
+  for (let delta = 1; delta <= 3; delta++) {
+    const d  = new Date(now.getFullYear(), now.getMonth() - delta + 1, 0); // last day of month
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    const mName = months[d.getMonth()];
+    const fy = d.getMonth() >= 3 ? `${d.getFullYear()}-${d.getFullYear() + 1}` : `${d.getFullYear() - 1}-${d.getFullYear()}`;
+    urls.push(
+      `https://report.grid-india.in/ReportData/Daily%20Report/PSP%20Report/${fy}/${mName}%20${d.getFullYear()}/${dd}.${mm}.${yy}_NLDC_PSP.pdf`
+    );
+  }
+  // Live PSP page as last resort
+  urls.push('https://report.grid-india.in/psp_report.php');
+  return urls;
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    EXTRACTION SCHEMAS — one per source, reusing the shared fc() routine
    ══════════════════════════════════════════════════════════════════════════ */
 const MNRE_SCHEMA = {
   type: 'object', properties: {
-    dataAsOf:    { type: 'string', description: 'Date of data (e.g. "31 March 2026")' },
-    totalSolarMW:{ type: 'number', description: 'All-India installed solar capacity in MW — sum of ground-mounted, rooftop, hybrid solar, and off-grid components' },
+    dataAsOf:         { type: 'string', description: 'Date the data covers, e.g. "31 March 2026" — appears in the document title or caption' },
+    totalSolarMW:     { type: 'number', description: 'ALL-INDIA grand total solar installed capacity in MW — the single number in the "Grand Total" or "All India" summary row under the "Solar Power Total" column. This should be the sum of all states and is typically 140,000–200,000 MW (140–200 GW) as of 2026. Do NOT return a single state\'s solar capacity.' },
+    groundMountedMW:  { type: 'number', description: 'Grand total ground-mounted solar (GMS) in MW — also from the Grand Total row' },
+    rooftopMW:        { type: 'number', description: 'Grand total rooftop solar (RTS / PM-Surya Ghar) in MW — Grand Total row' },
   },
 };
 const MNRE_PROMPT =
-  'Extract all-India total installed solar capacity in MW and the date the data covers. ' +
-  'Look for a "Solar Power Total" or "Grand Total" row for solar. ' +
-  'Return only numbers explicitly shown — do not invent values.';
+  'This is the MNRE Physical Progress PDF — a table of renewable energy installed capacity by state. ' +
+  'It has 35+ state rows plus a GRAND TOTAL row at the bottom.\n\n' +
+  'Extract ONLY from the GRAND TOTAL (all-India summary) row:\n' +
+  '  • totalSolarMW — the "Solar Power Total" column value in the Grand Total row\n' +
+  '    (This is all-India solar and is typically printed as ~150,000 in 2026)\n' +
+  '  • groundMountedMW — ground-mounted solar grand total\n' +
+  '  • rooftopMW — rooftop solar grand total\n' +
+  '  • dataAsOf — date of the report shown in the title/heading\n\n' +
+  'CRITICAL: Return the Grand Total row numbers only. ' +
+  'Do NOT return Rajasthan (41,000 MW), Gujarat (29,000 MW) or any other single state. ' +
+  'If you cannot find the Grand Total row, return null for all fields.';
 
 const CEA_SCHEMA = {
   type: 'object', properties: {
@@ -141,16 +175,23 @@ const CEA_PROMPT =
 
 const GRID_SCHEMA = {
   type: 'object', properties: {
-    fyPeakMW:   { type: 'number', description: 'Maximum peak demand met (MW) across all months of current FY 2025-26 so far' },
-    fyPeakDate: { type: 'string', description: 'Date on which FY peak occurred, e.g. "09 Jan 2026"' },
-    monthPeakMW:{ type: 'number', description: "This month's maximum peak demand met in MW (fallback if FY peak not stated)" },
+    fyPeakMW:     { type: 'number', description: 'Maximum peak demand met (MW) for FY 2025-26 year-to-date, if explicitly stated in the document' },
+    fyPeakDate:   { type: 'string', description: 'Date on which FY 2025-26 peak occurred, e.g. "09 Jan 2026"' },
+    monthPeakMW:  { type: 'number', description: 'Maximum peak demand met (MW) during this specific report month (the "Max Demand Met" figure for the month)' },
+    monthName:    { type: 'string', description: 'The month this report covers, e.g. "March 2026"' },
+    totalEnergyMU:{ type: 'number', description: 'Total energy met/generated in Million Units (MU) for the month' },
   },
 };
 const GRID_PROMPT =
-  'This is a Grid India (NLDC) monthly or daily power system performance report for India. ' +
-  'Extract the maximum peak demand met (MW) for FY 2025-26 overall if stated, ' +
-  'or for this specific month if FY YTD is not available. ' +
-  'Also extract the date of the peak. Return null for anything not explicitly in the report.';
+  'This is a Grid India (NLDC) Power System Performance (PSP) report for India FY 2025-26.\n' +
+  'Extract:\n' +
+  '  • fyPeakMW — if the report explicitly states the FY 2025-26 all-year peak demand in MW, extract it\n' +
+  '  • fyPeakDate — date the FY peak occurred (e.g. "09 Jan 2026")\n' +
+  '  • monthPeakMW — the "Maximum Demand Met" in MW for this specific month (typically 150,000–260,000 MW range)\n' +
+  '  • monthName — which month this report is for\n' +
+  '  • totalEnergyMU — total energy met in MU for the month\n\n' +
+  'For India: peak demand is 150,000–260,000 MW (150–260 GW). ' +
+  'Return null for any field not explicitly in the document.';
 
 /* ══════════════════════════════════════════════════════════════════════════
    SCRAPE EACH SOURCE
@@ -193,32 +234,44 @@ function pos(n) { return typeof n === 'number' && isFinite(n) && n > 0; }
 function normalise(mnre, cea, grid) {
   const kpis = {};
 
-  // KPI 1: Total Solar GW
+  // KPI 1: Total Solar GW — from MNRE Physical Progress PDF
   const sm = mnre?.data?.totalSolarMW;
-  if (pos(sm) && sm > 50000) {   // India solar > 50 GW = 50000 MW; guard against small numbers
+  // Guard: India's solar installed base is 140,000–250,000 MW range in 2025-26
+  if (pos(sm) && sm > 100000 && sm < 300000) {
     kpis.totalSolarGW = { value: +(sm / 1000).toFixed(2), asOf: mnre.data.dataAsOf || null,
                           sourceUrl: mnre.url, sourceType: 'PDF' };
   }
 
-  // KPI 2: Solar Share %
+  // KPI 2: Solar Share % — calculated from CEA source-wise generation
   const sol = cea?.data?.solarBU, tot = cea?.data?.totalBU;
   if (pos(sol) && pos(tot) && sol < tot) {
     kpis.solarSharePct = { value: +((sol / tot) * 100).toFixed(1),
                            solarBU: sol, totalBU: tot,
-                           period: cea.data.reportPeriod || null,
+                           period: cea?.data?.reportPeriod || null,
                            sourceUrl: cea.url, sourceType: 'PDF' };
   }
 
   // KPI 3: Peak Demand FY YTD
-  const fpk = grid?.data?.fyPeakMW || grid?.data?.monthPeakMW;
-  if (pos(fpk) && fpk > 100000) {   // India peak > 100 GW
-    kpis.peakDemandMW = { value: fpk,
-                          peakDate: grid.data.fyPeakDate || null,
-                          isFYYTD: !!grid?.data?.fyPeakMW,
-                          sourceUrl: grid.url, sourceType: 'PDF' };
+  //   Primary: Grid India monthly/daily report (fyPeakMW or monthPeakMW)
+  //   Fallback: CEA Executive Summary monthPeakMW
+  const gpk = grid?.data?.fyPeakMW || grid?.data?.monthPeakMW;
+  const cpk = cea?.data?.monthPeakMW;
+  const fpk = (pos(gpk) && gpk > 100000) ? gpk
+            : (pos(cpk) && cpk > 100000) ? cpk
+            : null;
+  if (fpk) {
+    const isFromGrid = pos(gpk) && gpk > 100000;
+    kpis.peakDemandMW = {
+      value:      fpk,
+      peakDate:   isFromGrid ? (grid.data.fyPeakDate || null) : null,
+      isFYYTD:    isFromGrid && !!grid?.data?.fyPeakMW,
+      sourceUrl:  isFromGrid ? grid.url : cea.url,
+      sourceType: 'PDF',
+      note:       isFromGrid ? (grid.data.fyPeakMW ? 'FY YTD max' : 'monthly peak from Grid India') : 'monthly peak from CEA Executive Summary',
+    };
   }
 
-  // KPI 4: Demand Growth YoY
+  // KPI 4: Demand Growth YoY — from CEA energy requirement BU comparison
   const cur = cea?.data?.fyReqBU, prv = cea?.data?.fyPriorReqBU;
   if (pos(cur) && pos(prv) && cur > 100 && prv > 100) {
     kpis.demandGrowthPct = { value: +(((cur - prv) / prv) * 100).toFixed(1),
@@ -228,6 +281,19 @@ function normalise(mnre, cea, grid) {
   }
 
   return kpis;
+}
+
+/* Print raw extracted values from each source (helps debug failed validations) */
+function debugRaw(mnre, cea, grid) {
+  if (mnre?.data) {
+    console.log('\n  MNRE raw:', JSON.stringify(mnre.data));
+  }
+  if (cea?.data) {
+    console.log('  CEA raw:', JSON.stringify(cea.data));
+  }
+  if (grid?.data) {
+    console.log('  Grid raw:', JSON.stringify(grid.data));
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -252,13 +318,14 @@ const [mnre, cea, grid] = await Promise.all([
   scrapeSource('Grid India', {
     listPage:     GRID_PAGE,
     urlRe:        GRID_RE,
-    fallbackUrls: [GRID_PSP],
+    fallbackUrls: gridFallbackUrls(),
     schema:       GRID_SCHEMA,
     prompt:       GRID_PROMPT,
     waitFor:      6000,
   }),
 ]);
 
+debugRaw(mnre, cea, grid);
 const kpis = normalise(mnre, cea, grid);
 const out  = {
   scrapedAt: new Date().toISOString(),
