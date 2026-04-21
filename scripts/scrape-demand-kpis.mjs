@@ -90,8 +90,15 @@ function ceaFallbackUrls() {
     // published folder is same month or one month later
     for (const pub of [m0, String(d.getMonth() + 2).padStart(2, '0')]) {
       const base = `https://cea.nic.in/wp-content/uploads/executive/${y}/${pub}`;
+      // Correct spelling variants (FY26+ use "Actual" not "Aztual")
+      urls.push(`${base}/Executive_Summary_${mn}_${y}_Actual.pdf`);
+      urls.push(`${base}/Executive_Summary_${mn}_${y}_Actual_Updated.pdf`);
+      urls.push(`${base}/Executive_Summary_${mn}_${y}_Actual_updated.pdf`);
+      // Older typo-spelling (FY25 and earlier)
       urls.push(`${base}/Executive_Summary_${mn}_${y}_Aztual_updated.pdf`);
       urls.push(`${base}/Executive_Summary_${mn}_${y}_Aztual_Updated.pdf`);
+      // Short month abbreviation variants
+      urls.push(`${base}/Executive_Summary_${ma}_${y}_Actual.pdf`);
       urls.push(`${base}/Executive_Summary_${ma}_${y}_Aztual_updated.pdf`);
       urls.push(`${base}/Executive_Summary_${ma}_${y}.pdf`);
       urls.push(`${base}/executive.pdf`);
@@ -213,7 +220,13 @@ const GRID_PROMPT =
 /* ══════════════════════════════════════════════════════════════════════════
    SCRAPE EACH SOURCE
    ══════════════════════════════════════════════════════════════════════════ */
-async function scrapeSource(label, { listPage, urlRe, fallbackUrls, schema, prompt, waitFor = 4000 }) {
+/* scrapeSource — two modes for fallback URL resolution:
+     probeFirst (default): HEAD/Range-probe the candidate list, then scrape the
+       winner. Works for CEA/MNRE where servers accept standard requests.
+     directTry: skip the probe entirely, send each candidate URL straight to
+       Firecrawl until one extracts non-null data. Needed for Grid India's PSP
+       PDF server which rejects Range/HEAD probes but works fine via Firecrawl. */
+async function scrapeSource(label, { listPage, urlRe, fallbackUrls, schema, prompt, waitFor = 4000, directTry = false }) {
   let pdfUrl = null;
 
   // Step 1: find PDF URL from listing page
@@ -225,19 +238,33 @@ async function scrapeSource(label, { listPage, urlRe, fallbackUrls, schema, prom
     console.log(`  ${label}: listing page failed (${e.message}) — trying fallbacks`);
   }
 
-  // Step 2: fallback to candidate URL list
+  // Step 2: fallback
   if (!pdfUrl && fallbackUrls?.length) {
-    pdfUrl = await firstOk(fallbackUrls);
-    if (pdfUrl) console.log(`  ${label}: fallback URL resolved → ${pdfUrl}`);
-    else console.log(`  ${label}: all fallback URLs 404`);
+    if (directTry) {
+      // Send each candidate to Firecrawl directly; return first that yields extracted data
+      for (const u of fallbackUrls) {
+        try {
+          const { x } = await fc(u, { schema, prompt, waitFor });
+          if (x && Object.values(x).some(v => v !== null)) {
+            console.log(`  ${label}: fallback extracted data → ${u}`);
+            return { ok: true, url: u, type: u.toLowerCase().endsWith('.pdf') ? 'PDF' : 'HTML', data: x };
+          }
+        } catch { /* move to next candidate */ }
+      }
+      console.log(`  ${label}: all fallback URLs failed extraction`);
+    } else {
+      pdfUrl = await firstOk(fallbackUrls);
+      if (pdfUrl) console.log(`  ${label}: fallback URL resolved → ${pdfUrl}`);
+      else console.log(`  ${label}: all fallback URLs 404`);
+    }
   }
 
   if (!pdfUrl) return { ok: false, url: listPage, error: 'No PDF URL found' };
 
-  // Step 3: scrape the PDF
+  // Step 3: scrape the resolved URL
   try {
-    const { x } = await fc(pdfUrl, { schema, prompt });
-    return { ok: true, url: pdfUrl, type: 'PDF', data: x };
+    const { x } = await fc(pdfUrl, { schema, prompt, waitFor });
+    return { ok: true, url: pdfUrl, type: pdfUrl.toLowerCase().endsWith('.pdf') ? 'PDF' : 'HTML', data: x };
   } catch (e) {
     return { ok: false, url: pdfUrl, error: e.message };
   }
@@ -351,6 +378,7 @@ const [mnre, cea, grid] = await Promise.all([
     schema:       GRID_SCHEMA,
     prompt:       GRID_PROMPT,
     waitFor:      6000,
+    directTry:    true,    // PSP PDF server rejects Range probes; try Firecrawl directly
   }),
 ]);
 
