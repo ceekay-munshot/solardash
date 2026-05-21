@@ -1,5 +1,5 @@
 {
-  "scrapedAt": "2026-05-21T04:21:45.317Z",
+  "scrapedAt": "2026-05-21T16:39:01.585Z",
   "scripCode": "541450",
   "slug": "adani-green",
   "sources": {
@@ -23,13 +23,6 @@
       "count": 0,
       "tag": "library",
       "error": null
-    },
-    "shareholding": {
-      "ok": false,
-      "url": "https://api.bseindia.com/BseIndiaAPI/api/ScripHeaderData/w?Debtflag=&scripcode=541450&seriesid=",
-      "count": 0,
-      "tag": "guess",
-      "error": "non-JSON response (\r\n\r\n<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitiona…)"
     },
     "annualReports": {
       "ok": true,
@@ -254,7 +247,6 @@
     ],
     "corpActions": [],
     "boardMeetings": [],
-    "shareholding": [],
     "annualReports": [
       {
         "year": null,
