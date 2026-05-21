@@ -1,5 +1,5 @@
 {
-  "scrapedAt": "2026-05-21T04:12:17.346Z",
+  "scrapedAt": "2026-05-21T04:21:45.317Z",
   "scripCode": "541450",
   "slug": "adani-green",
   "sources": {
@@ -7,43 +7,43 @@
       "ok": true,
       "url": "https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w?pageno=1&strCat=-1&strPrevDate=20260220&strScrip=541450&strSearch=P&strToDate=20260521&strType=C",
       "count": 29,
-      "confirmed": true,
+      "tag": "confirmed",
       "error": null
     },
     "corpActions": {
-      "ok": false,
-      "url": "https://api.bseindia.com/BseIndiaAPI/api/CorporateActiononCompany/w?scripcode=541450",
+      "ok": true,
+      "url": "https://api.bseindia.com/BseIndiaAPI/api/DefaultData/w?Fdate=20260220&TDate=20260521&Purposecode=&ddlcategorys=E&ddlindustrys=&scripcode=541450&segment=0&strSearch=S",
       "count": 0,
-      "confirmed": false,
-      "error": "non-JSON response (\r\n\r\n<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitiona…)"
+      "tag": "library",
+      "error": null
     },
     "boardMeetings": {
-      "ok": false,
-      "url": "https://api.bseindia.com/BseIndiaAPI/api/BoardMeeting_v1/w?scripcode=541450&strType=C",
+      "ok": true,
+      "url": "https://api.bseindia.com/BseIndiaAPI/api/Corpforthresults/w?fromdate=20260220&todate=20260521&scripcode=541450",
       "count": 0,
-      "confirmed": false,
-      "error": "non-JSON response (\r\n\r\n<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitiona…)"
-    },
-    "results": {
-      "ok": false,
-      "url": "https://api.bseindia.com/BseIndiaAPI/api/Comp_Resultsnew/w?scripcode=541450",
-      "count": 0,
-      "confirmed": false,
-      "error": "non-JSON response (\r\n\r\n<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitiona…)"
+      "tag": "library",
+      "error": null
     },
     "shareholding": {
       "ok": false,
-      "url": "https://api.bseindia.com/BseIndiaAPI/api/Shareholding_Pattern/w?scripcode=541450",
+      "url": "https://api.bseindia.com/BseIndiaAPI/api/ScripHeaderData/w?Debtflag=&scripcode=541450&seriesid=",
       "count": 0,
-      "confirmed": false,
+      "tag": "guess",
       "error": "non-JSON response (\r\n\r\n<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitiona…)"
     },
     "annualReports": {
-      "ok": false,
-      "url": "https://api.bseindia.com/BseIndiaAPI/api/Annual_Reports/w?scripcode=541450",
-      "count": 0,
-      "confirmed": false,
-      "error": "non-JSON response (\r\n\r\n<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitiona…)"
+      "ok": true,
+      "url": "https://api.bseindia.com/BseIndiaAPI/api/AnnualReport/w?scripcode=541450",
+      "count": 8,
+      "tag": "guess",
+      "error": null
+    },
+    "results": {
+      "ok": true,
+      "deriveFrom": "announcements",
+      "count": 1,
+      "tag": "derived",
+      "error": null
     }
   },
   "data": {
@@ -52,181 +52,251 @@
         "date": "2026-05-18T22:19:58.96",
         "title": "Further update on US Matter",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/623873f4-448c-4dce-8aa8-6be73589b7a4.pdf"
       },
       {
         "date": "2026-05-16T18:44:58.293",
         "title": "Intimation of interaction with Analysts/ Investors",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/9443b3a4-94b3-40b3-a7fc-b79643da6e24.pdf"
       },
       {
         "date": "2026-05-15T06:03:16.83",
         "title": "Further update on US Matter",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/88187012-03c8-4687-a839-864d352851c8.pdf"
       },
       {
         "date": "2026-05-10T19:57:00.087",
         "title": "Operationalisation of Project",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/e60eaf4e-fd82-47ea-83b2-afc08631b3e1.pdf"
       },
       {
         "date": "2026-05-07T14:58:20.913",
         "title": "Intimation of incorporation of step-down subsidiary companies",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/a87ec340-ba18-4566-9a8c-b374f904313f.pdf"
       },
       {
         "date": "2026-05-06T11:10:52.157",
         "title": "Intimation of meeting",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/c7e01e04-8509-43bb-87e5-2c8f11402d24.pdf"
       },
       {
         "date": "2026-04-28T18:24:12.507",
         "title": "Transcript of Earnings Call with Fixed Income Investors",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/75566fbd-40b0-42d1-a20a-053720dfe89f.pdf"
       },
       {
         "date": "2026-04-28T18:17:50.827",
         "title": "Transcript of Earnings Call with Equity Investors",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/4e28094d-a572-4787-bcc0-d47b802936a8.pdf"
       },
       {
         "date": "2026-04-25T13:32:02.893",
         "title": "Audio recording of Analysts/ Investor Call pertaining to Audited Financial Results of the Company",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/32a1c701-b5b2-45c1-8d65-600d92f45430.pdf"
       },
       {
         "date": "2026-04-24T14:18:21.53",
         "title": "Presentation on Operational and Financial highlights",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/ef6866b1-db22-4b27-93ed-764b035c6301.pdf"
       },
       {
         "date": "2026-04-24T14:11:51.37",
         "title": "Audited Financial Results for the quarter and year ended March 31, 2026",
         "category": "Result",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/4a83854c-4424-4bd9-8a7a-b4a81bd198ee.pdf"
       },
       {
         "date": "2026-04-24T13:56:39.467",
         "title": "Outcome of Board Meeting held on April 24, 2026",
         "category": "Board Meeting",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/20e4d232-63bb-469c-b688-176ee2411b5f.pdf"
       },
       {
         "date": "2026-04-22T21:25:42.75",
         "title": "Operationalisation of Project",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/dd4b8848-90e5-4992-934f-525485edb67c.pdf"
       },
       {
         "date": "2026-04-18T17:42:11.683",
         "title": "Further update on USA Matter",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/8ace6427-991c-4833-a67b-ce2dfd1fc72c.pdf"
       },
       {
         "date": "2026-04-13T13:15:19.903",
         "title": "We submit herewith the details of investor/ analyst call",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/5d50fd18-deb7-4592-a128-d588267f13ed.pdf"
       },
       {
         "date": "2026-04-11T22:17:12.537",
         "title": "ESG Rating",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/6ff589d1-fdaf-4360-bed6-951db2216018.pdf"
       },
       {
         "date": "2026-04-10T18:18:55.59",
         "title": "Provisional Operational Update: FY 26",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/5f06eb55-d5ac-4523-b6ad-4d9264e1d8e1.pdf"
       },
       {
         "date": "2026-04-09T11:09:51.27",
         "title": "Joint venture agreement by wholly-owned subsidiary",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/7761194d-4a50-4d9f-8ae0-4881ff462e6e.pdf"
       },
       {
         "date": "2026-04-08T13:31:05.28",
         "title": "Further update on USA matter",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/a5327968-04c4-4ce0-bc3f-7ea52ad76ec7.pdf"
       },
       {
         "date": "2026-04-03T16:02:02.793",
         "title": "Certification under Reg. 74(5) of SEBI (DP) Reg., 2018",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/dd6fa01c-981a-4a49-b8ff-7b403d6d13d6.pdf"
       },
       {
         "date": "2026-04-01T08:28:01.963",
         "title": "Media Release",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/1939b304-1b90-4061-a54f-cb0ec084e2a1.pdf"
       },
       {
         "date": "2026-04-01T08:23:34.737",
         "title": "Operationalzation of Projects",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/54a33032-4227-4d0e-a368-b84868e6a4d2.pdf"
       },
       {
         "date": "2026-03-30T16:29:19.71",
         "title": "Adani Green Energy Ltdhas informed BSE that the meeting of the Board of Directors of the Company is scheduled on 24/04/2026 ,inter alia, to consider and approve the Audited Financial Results (Standalone and Consolidated) of the Company for the quarter and year ended March 31, 2026.",
         "category": "Board Meeting",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/e8309e29-3878-4c1f-a5a3-865535b42fae.pdf"
       },
       {
         "date": "2026-03-30T08:53:21.033",
         "title": "Operationalization of Projects",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/041fa27b-9413-4b07-aaf2-3e6ffda10896.pdf"
       },
       {
         "date": "2026-03-26T18:06:32.1",
         "title": "Intimation of closure of Trading Window",
         "category": "Insider Trading / SAST",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/3d484cde-307b-458c-b621-1b218a4de61b.pdf"
       },
       {
         "date": "2026-03-23T07:36:05.267",
         "title": "Operationalization of Projects",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/4006d023-1308-4c34-b742-b31b611cf49b.pdf"
       },
       {
         "date": "2026-03-11T18:35:05.853",
         "title": "Intimation of interaction with Investors / Analysts",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/12cdbd8d-f828-46ce-bdc5-65928f767573.pdf"
       },
       {
         "date": "2026-02-28T13:29:55.707",
         "title": "Operationalization of Project",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/aaecb8e4-1e17-4c81-b2d9-5c3f0ea9258f.pdf"
       },
       {
         "date": "2026-02-25T17:53:05.55",
         "title": "Intimation of Incorporation of wholly-owned subsidiary company",
         "category": "Company Update",
+        "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/a1140e9f-4c61-4041-b9e9-b5d2fa2d3bcf.pdf"
       }
     ],
     "corpActions": [],
     "boardMeetings": [],
-    "results": [],
     "shareholding": [],
-    "annualReports": []
+    "annualReports": [
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      }
+    ],
+    "results": [
+      {
+        "date": "2026-04-24T14:11:51.37",
+        "title": "Audited Financial Results for the quarter and year ended March 31, 2026",
+        "category": "Result",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/4a83854c-4424-4bd9-8a7a-b4a81bd198ee.pdf"
+      }
+    ]
   }
 }
