@@ -1,0 +1,53 @@
+name: BSE company scrape
+
+# Scrapes BSE public corporate data for one company and commits the JSON.
+# Runs twice daily and on manual trigger. Designed to fail soft — a BSE
+# IP block produces an empty result but never fails the workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      scrip:
+        description: 'BSE scrip code (6 digits)'
+        required: true
+        default: '541450'
+      slug:
+        description: 'Output slug (data/bse-<slug>.json)'
+        required: true
+        default: 'adani-green'
+  schedule:
+    # 06:30 and 19:30 IST (01:00 and 14:00 UTC)
+    - cron: '0 1,14 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run BSE scrape
+        run: |
+          node scripts/scrape-bse-company.mjs \
+            "${{ github.event.inputs.scrip || '541450' }}" \
+            "${{ github.event.inputs.slug  || 'adani-green' }}"
+
+      - name: Commit result if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/bse-*.json
+          if git diff --cached --quiet; then
+            echo "No changes — nothing to commit."
+          else
+            git commit -m "data(bse): refresh corporate data scrape"
+            git push
+          fi
