@@ -89,71 +89,92 @@ async function bseGet(url) {
 
 /* ══════════════════════════════════════════════════════════════════════════
    BSE ENDPOINTS — edit URLs here, nowhere else.
-   {scrip} {from} {to} are substituted. Mark each as confirmed/best-guess.
+   {scrip} {from} {to} are substituted (dates are YYYYMMDD).
+
+   Each category is either:
+     • FETCHED  — has a `url`; hit directly.
+     • DERIVED  — has `deriveFrom`; computed from another category's rows
+                  (no extra HTTP call). Used when the dedicated endpoint is
+                  unknown but the data already arrives via announcements.
+
+   reliability tag:
+     'confirmed'  — endpoint path verified working
+     'library'    — path taken from the canonical BseIndiaApi library
+     'derived'    — computed from a confirmed source, 100% reliable
+     'guess'      — best-effort path; first run is discovery for these
    ══════════════════════════════════════════════════════════════════════════ */
 const API = 'https://api.bseindia.com/BseIndiaAPI/api';
 
 const BSE_ENDPOINTS = {
+  /* CONFIRMED — verified working (29 rows in first run). Returns every
+     corporate filing, each tagged with CATEGORYNAME. */
   announcements: {
-    confirmed: true,
+    tag: 'confirmed',
     url: `${API}/AnnGetData/w?pageno=1&strCat=-1&strPrevDate={from}&strScrip={scrip}&strSearch=P&strToDate={to}&strType=C`,
-    // response: { Table: [ { NEWS_DT, NEWSSUB, HEADLINE, CATEGORYNAME, ATTACHMENTNAME, NSURL, ... } ] }
     pick: j => (j.Table || []).map(r => ({
       date:     r.NEWS_DT || r.News_submission_dt || null,
       title:    r.HEADLINE || r.NEWSSUB || null,
       category: r.CATEGORYNAME || r.SUBCATNAME || null,
+      subCat:   r.SUBCATNAME || null,
       pdfUrl:   r.ATTACHMENTNAME
                   ? `https://www.bseindia.com/xml-data/corpfiling/AttachLive/${r.ATTACHMENTNAME}`
                   : (r.NSURL || null),
     })),
   },
 
+  /* LIBRARY — path from BseIndiaApi. Dividends / bonus / splits / record dates. */
   corpActions: {
-    confirmed: false,
-    url: `${API}/CorporateActiononCompany/w?scripcode={scrip}`,
-    pick: j => (j.Table || j.CorpactList || []).map(r => ({
-      exDate:   r.Ex_date || r.EX_DATE || null,
-      purpose:  r.Purpose || r.PURPOSE || null,
-      recordDt: r.RD_Date || r.RECORD_DATE || null,
-      details:  r.purpose_remarks || r.DETAILS || null,
+    tag: 'library',
+    url: `${API}/DefaultData/w?Fdate={from}&TDate={to}&Purposecode=&ddlcategorys=E&ddlindustrys=&scripcode={scrip}&segment=0&strSearch=S`,
+    pick: j => (j.Table || j.Table1 || []).map(r => ({
+      exDate:   r.Ex_date || r.EX_DATE || r.ExDate || null,
+      purpose:  r.Purpose || r.PURPOSE || r.purpose_remarks || null,
+      recordDt: r.RD_Date || r.RECORD_DATE || r.RecordDate || null,
+      bcStart:  r.BCRD_FROM || r.BC_START || null,
+      bcEnd:    r.BCRD_TO   || r.BC_END   || null,
     })),
   },
 
+  /* LIBRARY — path from BseIndiaApi. Forthcoming board meetings / results calendar. */
   boardMeetings: {
-    confirmed: false,
-    url: `${API}/BoardMeeting_v1/w?scripcode={scrip}&strType=C`,
+    tag: 'library',
+    url: `${API}/Corpforthresults/w?fromdate={from}&todate={to}&scripcode={scrip}`,
     pick: j => (j.Table || []).map(r => ({
-      date:    r.Meeting_Date || r.MeetingDate || r.Board_Meeting_Date || null,
-      purpose: r.Meeting_Purpose || r.Purpose || r.Description || null,
+      date:    r.Meeting_Date || r.meeting_date || r.Board_Meeting_Date || r.Forth_Date || null,
+      purpose: r.purpose || r.Purpose || r.Meeting_Purpose || r.Description || null,
     })),
   },
 
+  /* DERIVED — financial-result filings are already in the announcements feed,
+     tagged CATEGORYNAME = "Result"/"Results". Filter them out client-side:
+     gives quarterly/annual filing metadata + PDF links with zero extra calls. */
   results: {
-    confirmed: false,
-    url: `${API}/Comp_Resultsnew/w?scripcode={scrip}`,
-    pick: j => (j.Table || []).map(r => ({
-      period:  r.Result_Period || r.PERIOD || r.Quarter || null,
-      revenue: r.Net_Sales || r.Revenue || r.Income || null,
-      pat:     r.Net_Profit || r.PAT || null,
-      pdfUrl:  r.NSURL || r.AttachmentURL || null,
-    })),
+    tag: 'derived',
+    deriveFrom: 'announcements',
+    derive: rows => rows.filter(r => /result/i.test(r.category || '') || /result/i.test(r.subCat || '')),
   },
 
+  /* GUESS — dedicated shareholding endpoint not in any known library.
+     If this 404s, capture the real URL from the BSE shareholding page's
+     browser Network tab and paste it here. */
   shareholding: {
-    confirmed: false,
-    url: `${API}/Shareholding_Pattern/w?scripcode={scrip}`,
+    tag: 'guess',
+    url: `${API}/ScripHeaderData/w?Debtflag=&scripcode={scrip}&seriesid=`,
     pick: j => (j.Table || []).map(r => ({
-      asOf:        r.QTR_END_DT || r.Period || null,
-      promoterPct: r.Promoter || r.PROMOTER_PCT || null,
-      publicPct:   r.Public || r.PUBLIC_PCT || null,
+      asOf:        r.QTR_END_DT || r.Period || r.QtrEnd || null,
+      promoterPct: r.Promoter || r.PROMOTER_PCT || r.PromoterHolding || null,
+      publicPct:   r.Public   || r.PUBLIC_PCT   || r.PublicHolding   || null,
     })),
   },
 
+  /* GUESS — dedicated annual-report endpoint not in any known library.
+     Annual reports also surface in the announcements feed (category
+     "Company Update" / "Annual Report") — see results pattern if this fails. */
   annualReports: {
-    confirmed: false,
-    url: `${API}/Annual_Reports/w?scripcode={scrip}`,
+    tag: 'guess',
+    url: `${API}/AnnualReport/w?scripcode={scrip}`,
     pick: j => (j.Table || []).map(r => ({
-      year:   r.Year || r.FY || null,
+      year:   r.Year || r.FY || r.AR_Year || null,
       pdfUrl: r.PDFURL || r.NSURL || r.AttachmentURL || null,
     })),
   },
@@ -178,28 +199,54 @@ const out = {
   data:      {},
 };
 
+// Pass 1: fetched categories (those with a url)
 for (const [name, cfg] of Object.entries(BSE_ENDPOINTS)) {
+  if (!cfg.url) continue;
   const url = buildUrl(cfg.url);
   process.stdout.write(`  ${name.padEnd(15)} `);
   try {
     const raw  = await bseGet(url);
     const rows = cfg.pick(raw) || [];
     out.data[name]    = rows;
-    out.sources[name] = { ok: true, url, count: rows.length, confirmed: cfg.confirmed, error: null };
-    console.log(`✓ ${rows.length} row(s)${cfg.confirmed ? '' : '  (best-guess endpoint)'}`);
+    out.sources[name] = { ok: true, url, count: rows.length, tag: cfg.tag, error: null };
+    console.log(`✓ ${rows.length} row(s)  [${cfg.tag}]`);
   } catch (e) {
     out.data[name]    = [];
-    out.sources[name] = { ok: false, url, count: 0, confirmed: cfg.confirmed, error: String(e.message) };
-    console.log(`✗ ${e.message}`);
+    out.sources[name] = { ok: false, url, count: 0, tag: cfg.tag, error: String(e.message) };
+    console.log(`✗ ${e.message}  [${cfg.tag}]`);
+  }
+}
+
+// Pass 2: derived categories (computed from an already-fetched category)
+for (const [name, cfg] of Object.entries(BSE_ENDPOINTS)) {
+  if (!cfg.deriveFrom) continue;
+  process.stdout.write(`  ${name.padEnd(15)} `);
+  const srcRows = out.data[cfg.deriveFrom] || [];
+  const srcOk   = out.sources[cfg.deriveFrom]?.ok;
+  if (!srcOk) {
+    out.data[name]    = [];
+    out.sources[name] = { ok: false, deriveFrom: cfg.deriveFrom, count: 0, tag: cfg.tag,
+                          error: `source category '${cfg.deriveFrom}' failed` };
+    console.log(`✗ source '${cfg.deriveFrom}' unavailable  [${cfg.tag}]`);
+  } else {
+    const rows = cfg.derive(srcRows) || [];
+    out.data[name]    = rows;
+    out.sources[name] = { ok: true, deriveFrom: cfg.deriveFrom, count: rows.length, tag: cfg.tag, error: null };
+    console.log(`✓ ${rows.length} row(s)  [${cfg.tag} from ${cfg.deriveFrom}]`);
   }
 }
 
 await mkdir(dirname(OUT), { recursive: true });
 await writeFile(OUT, JSON.stringify(out, null, 2));
 
-const ok = Object.values(out.sources).filter(s => s.ok).length;
-console.log(`\n${ok}/6 categories OK → wrote ${OUT}`);
-if (ok === 0) {
+const total = Object.keys(BSE_ENDPOINTS).length;
+const ok    = Object.values(out.sources).filter(s => s.ok).length;
+console.log(`\n${ok}/${total} categories OK → wrote ${OUT}`);
+const guessFails = Object.entries(out.sources)
+  .filter(([, s]) => !s.ok && s.tag === 'guess')
+  .map(([k]) => k);
+if (guessFails.length)
+  console.log(`Guess endpoints to fix: ${guessFails.join(', ')} — capture real URL from BSE site Network tab.`);
+if (ok === 0)
   console.log('All categories failed — likely BSE IP block. Output written empty; CI stays green.');
-}
 process.exit(0);   // always 0 — partial success must not fail CI
