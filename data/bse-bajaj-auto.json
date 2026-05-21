@@ -1,49 +1,424 @@
 {
-  "scrapedAt": "2026-05-21T11:31:38.568Z",
+  "scrapedAt": "2026-05-21T11:34:39.966Z",
   "scripCode": "532977",
   "slug": "bajaj-auto",
   "sources": {
     "announcements": {
-      "ok": false,
+      "ok": true,
       "url": "https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w?pageno=1&strCat=-1&strPrevDate=20260220&strScrip=532977&strSearch=P&strToDate=20260521&strType=C",
-      "count": 0,
+      "count": 43,
       "tag": "confirmed",
-      "error": "HTTP 403 (blocked/rate-limited)"
+      "error": null
     },
     "corpActions": {
-      "ok": false,
+      "ok": true,
       "url": "https://api.bseindia.com/BseIndiaAPI/api/DefaultData/w?Fdate=20260220&TDate=20260521&Purposecode=&ddlcategorys=E&ddlindustrys=&scripcode=532977&segment=0&strSearch=S",
       "count": 0,
       "tag": "library",
-      "error": "HTTP 403 (blocked/rate-limited)"
+      "error": null
     },
     "boardMeetings": {
-      "ok": false,
+      "ok": true,
       "url": "https://api.bseindia.com/BseIndiaAPI/api/Corpforthresults/w?fromdate=20260220&todate=20260521&scripcode=532977",
       "count": 0,
       "tag": "library",
-      "error": "HTTP 403 (blocked/rate-limited)"
+      "error": null
     },
     "annualReports": {
-      "ok": false,
+      "ok": true,
       "url": "https://api.bseindia.com/BseIndiaAPI/api/AnnualReport/w?scripcode=532977",
-      "count": 0,
+      "count": 16,
       "tag": "guess",
-      "error": "HTTP 403 (blocked/rate-limited)"
+      "error": null
     },
     "results": {
-      "ok": false,
+      "ok": true,
       "deriveFrom": "announcements",
-      "count": 0,
+      "count": 1,
       "tag": "derived",
-      "error": "source category 'announcements' failed"
+      "error": null
     }
   },
   "data": {
-    "announcements": [],
+    "announcements": [
+      {
+        "date": "2026-05-18T17:54:58.057",
+        "title": "Intimation of termination of loan agreements entered into by Bajaj Auto International Holdings BV, a wholly owned subsidiary of Bajaj Auto Limited and Bajaj Auto International Holdings AG, a step-down wholly owned subsidiary of Bajaj Auto Limited.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/ca13c558-719d-48b2-8469-7439b1c1d59c.pdf"
+      },
+      {
+        "date": "2026-05-16T11:53:17.1",
+        "title": "Newspaper Publication - Postal Ballot",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/6f796b27-52c3-4286-89cf-abe833dc5421.pdf"
+      },
+      {
+        "date": "2026-05-16T11:52:03.83",
+        "title": "Newspaper Publication - Postal Ballot",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/38914b97-8077-4041-a162-ec0ba778f217.pdf"
+      },
+      {
+        "date": "2026-05-15T17:09:17.97",
+        "title": "Notice of postal ballot (through remote e-voting)",
+        "category": "AGM/EGM",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/87d70f18-32ea-420c-aa65-e5a9d56c09dd.pdf"
+      },
+      {
+        "date": "2026-05-14T11:16:20.277",
+        "title": "Newspaper advertisement regarding the notice of special window for transfer and dematerialisation of physical securities.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/c46b552a-ab8c-4dc8-bf44-2111e3b3623e.pdf"
+      },
+      {
+        "date": "2026-05-13T11:39:45.383",
+        "title": "Intimation of ad hoc announcement and press release issued by Bajaj Mobility AG (formerly PIERER Mobility AG), a step-down subsidiary of Bajaj Auto Limited, titled Quarterly Report: 1st Quarter 2026.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/3a3a7119-9ac8-4f96-9a54-6c4ca4503277.pdf"
+      },
+      {
+        "date": "2026-05-12T16:38:39.577",
+        "title": "Transcript of the conference call held on 06 May 2026 of the Company''s Q4 FY26 results.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/cbc90a41-3f6e-4dcb-b47c-36dc70b66634.pdf"
+      },
+      {
+        "date": "2026-05-06T23:56:49.237",
+        "title": "Reference our intimation dated 06 May 2026",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/d7f9dde3-8b8c-4e99-9688-c4de93799ead.pdf"
+      },
+      {
+        "date": "2026-05-06T22:59:30.563",
+        "title": "Reference our intimation dated 06 May 2026",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/99a96085-6477-4362-8a5c-70e7d714fa38.pdf"
+      },
+      {
+        "date": "2026-05-06T21:31:33.163",
+        "title": "Audio recording for Q4 FY26 results",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/8f2b9708-5d97-4de8-bf3a-ed21f8f72b3a.pdf"
+      },
+      {
+        "date": "2026-05-06T19:48:00.407",
+        "title": "Friday, 29 May 2026, is fixed as record date for the dividend.",
+        "category": "Corp. Action",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/d5062510-4620-432d-ae7f-e36bcdfcf3d8.pdf"
+      },
+      {
+        "date": "2026-05-06T19:33:49.78",
+        "title": "Annual General Meeting of the Company will be held on Tuesday, 21 July 2026 at the registered office of the Company.",
+        "category": "AGM/EGM",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/bf80b0e9-d671-4777-8827-835025958b97.pdf"
+      },
+      {
+        "date": "2026-05-06T19:19:47.93",
+        "title": "The Board has recommended dividend of Rs. 150 per equity share of Rs. 10 each.",
+        "category": "Corp Action",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/0f3b6731-ee93-4e78-82f7-fd12dd037792.pdf"
+      },
+      {
+        "date": "2026-05-06T19:17:44.827",
+        "title": "The Board has recommended dividend of Rs. 150 per equity share of Rs. 10 each.",
+        "category": " Corp Action",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/a2c1b810-99aa-48cf-b9e8-621fd2d2ded3.pdf"
+      },
+      {
+        "date": "2026-05-06T19:16:19.183",
+        "title": "The Board has recommended dividend of Rs. 150 per equity share of Rs. 10 each.",
+        "category": " Corp Action",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/8654f737-2576-466b-b5ad-7d75b8c5cb1c.pdf"
+      },
+      {
+        "date": "2026-05-06T19:03:20.79",
+        "title": "Outcome of Board Meeting held on 06 May 2026, inter alia, to consider and approve buyback of fully paid-up equity shares of the company. This is to be considered as a part of the outcome of the Board Meeting (Financial Results) submitted to the stock exchange earlier today.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/4695e470-1c06-40d2-9953-b5c642c86053.pdf"
+      },
+      {
+        "date": "2026-05-06T18:52:01.68",
+        "title": "Outcome of Board Meeting - Audited financial results for the year ended 31 March 2026, Final dividend and AGM.",
+        "category": "Board Meeting",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/12ea33bb-7afb-4a5d-ad93-4e8046ee65b5.pdf"
+      },
+      {
+        "date": "2026-05-06T18:42:19.207",
+        "title": "Outcome of Board Meeting - Appointment of Joint Managing Director",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/202aa07e-ccd6-4a88-8380-90d6029ba68f.pdf"
+      },
+      {
+        "date": "2026-05-06T18:33:38.913",
+        "title": "Outcome of Board Meeting - Buyback of fully paid-up equity shares of the company, subject to approval of the shareholders.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/7804aa18-3a43-446a-b4b9-1fcbc66ac681.pdf"
+      },
+      {
+        "date": "2026-05-06T18:26:43.593",
+        "title": "Audited financial results for the year ended 31 March 2026",
+        "category": "Result",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/239a93a5-68fb-4de8-aaa4-5c79c681b54c.pdf"
+      },
+      {
+        "date": "2026-05-04T08:52:25.247",
+        "title": "Sales for the month of April 2026",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/bf933a01-59ff-4d2c-88eb-881c14c3632a.pdf"
+      },
+      {
+        "date": "2026-04-30T10:39:13.91",
+        "title": "Bajaj Auto Ltdhas informed BSE that the meeting of the Board of Directors of the Company is scheduled on 06/05/2026 ,inter alia, to consider and approve Update on board meeting to be held on 06 May 2026, inter alia, to consider proposal for buyback of fully paid-up equity shares of the Company.",
+        "category": "Board Meeting",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/d0e3b9a1-1877-47e3-af1b-1e7e1fc104cd.pdf"
+      },
+      {
+        "date": "2026-04-27T15:55:33.767",
+        "title": "  <b>Format of Initial Disclosure to be made by an entity identified as a Large Corporate.</b><br/><br/> <table border=''1px''><tr> <td><b>Sr. No.</b></td> <td><b>Particulars</b></td> <td><b>Details</b></td> </tr> <tr><td>1</td><td>Name of Company</td><td>Bajaj Auto Ltd</td></tr> <tr><td>2</td><td>CIN NO.</td><td>L65993PN2007PLC130076</td></tr> <tr><td>3</td> <td>Outstanding borrowing of company as on 31st March / 31st December, as applicable (in ....",
+        "category": null,
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/20ddd826-5832-4668-9f79-c508d3c94754.pdf"
+      },
+      {
+        "date": "2026-04-15T13:35:25.847",
+        "title": "Conference call (group meet) for analysts / institutional investors is scheduled on 06 May 2026 (Wednesday) at 07:15 PM IST for discussing the Company''''s Q4 FY26 results.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/67ea4051-cc95-4707-afc4-bdfc9e4f4288.pdf"
+      },
+      {
+        "date": "2026-04-13T17:22:48.523",
+        "title": "Bajaj Auto Ltdhas informed BSE that the meeting of the Board of Directors of the Company is scheduled on 06/05/2026 ,inter alia, to consider and approve the audited standalone and consolidated financial results of the company for the year ended 31 March 2026 and recommendation of dividend on equity shares, if any, for the said year.",
+        "category": "Board Meeting",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/842d9857-c036-4f98-8e71-5654ee2ec755.pdf"
+      },
+      {
+        "date": "2026-04-13T16:44:31.567",
+        "title": "Certificate under Regulation 74(5) of SEBI (DP) Reguations, 2018 for the quarter ended 31 March 2026.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/b1bfc310-7b72-40b4-ad9a-60fb3d63ce62.pdf"
+      },
+      {
+        "date": "2026-04-03T08:56:02.07",
+        "title": "Sales for the month of March 2026.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/2ccdf4fc-c81b-4d7d-99fc-3b10b912503e.pdf"
+      },
+      {
+        "date": "2026-03-31T10:49:00.507",
+        "title": "Intimation of credit rating reaffirmed by CARE Ratings Limited for Bajaj Auto Credit Limited, a wholly owned subsidiary of Bajaj Auto Limited.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/62a751e8-4cf5-4943-88d3-d34a15b3fb83.pdf"
+      },
+      {
+        "date": "2026-03-27T19:55:07.853",
+        "title": "Closure of trading window for the financial year ending 31 March 2026.",
+        "category": "Insider Trading / SAST",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/aeeaa271-c9a6-41ce-b24f-a3f946d4638e.pdf"
+      },
+      {
+        "date": "2026-03-26T12:37:24.727",
+        "title": "Intimation of ad hoc announcement/press release issued by Bajaj Mobility AG (formerly PIERER Mobility AG), a step-down subsidiary of Bajaj Auto Limited titled:\r\na. Bajaj Mobility AG confirms revenue and earnings for 2025 and publishes the annual report 2025.\r\nb. Bajaj Mobility AG annual financial report 2025 - Successful Turnaround Following an Intensive Year of Restructuring - Operational Stabilization and Record Motorsport Season.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/af623fce-feb6-46bc-b74c-26e109bece52.pdf"
+      },
+      {
+        "date": "2026-03-18T17:42:50.2",
+        "title": "Outcome of Board Meeting - Re-appointment of Whole-time Director of the Company.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/c7ee9295-0a4f-48a8-859a-939221eadc55.pdf"
+      },
+      {
+        "date": "2026-03-13T14:32:37.183",
+        "title": "Newspaper advertisement regarding the Notice of Special Window for Transfer and Dematerialisation of Physical Securities.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/df32e0db-3f3f-4d1b-a2a8-96c768fe45fb.pdf"
+      },
+      {
+        "date": "2026-03-07T13:45:25.49",
+        "title": "Intimation of credit rating assigned and reaffirmed by ICRA for Bajaj Auto Credit Limited, a wholly owned subsidiary of Bajaj Auto Limited",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/e9d89517-14fc-49a7-ba6e-723c6092e1c2.pdf"
+      },
+      {
+        "date": "2026-03-06T20:52:25.773",
+        "title": "Intimation of repayment of loans and resultant termination of loan agreements entered into by Bajaj Auto International Holdings BV, a wholly owned subsidiary of Bajaj Auto Limited.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/eb6e04bb-ebfa-474e-9c38-26ffe319144f.pdf"
+      },
+      {
+        "date": "2026-03-05T17:12:30.01",
+        "title": "Intimation of termination of loan agreement entered into between Bajaj Auto International Holdings BV, a wholly owned subsidiary of Bajaj Auto Limited and KTM AG, a step-down subsidiary of Bajaj Auto Limited.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/4113b3c3-b625-4cc8-a470-03acc59d2fe9.pdf"
+      },
+      {
+        "date": "2026-03-02T08:54:19.963",
+        "title": "Sales for the month of February 2026.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/973a28d7-7d0e-47a7-a873-fba49a1a0274.pdf"
+      },
+      {
+        "date": "2026-02-27T23:34:56.377",
+        "title": "Intimation of press release issued by Bajaj Mobility AG, a step-down subsidiary of Bajaj Auto Limited titled: Its wholly-owned subsidiary, KTM AG, strengthened its financial base through a successful refinancing, setting a clear course for growth.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/40ca72fb-0b17-46d6-9e7e-48a3cbed11c5.pdf"
+      },
+      {
+        "date": "2026-02-27T23:29:16.19",
+        "title": "Intimation of loan agreement entered into by KTM AG, a step-down subsidiary of Bajaj Auto Limited.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/166e9c0e-107c-4e40-a026-a4aa025bb0e4.pdf"
+      },
+      {
+        "date": "2026-02-27T10:20:16.44",
+        "title": "Intimation of ad-hoc announcement made by Bajaj Mobility AG (formerly PIERER Mobility AG), a step-down subsidiary of Bajaj Auto Limited titled - International banking consortium grants KTM AG a refinancing loan to strengthen its financial foundation.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/24cbe4fb-248a-4578-bf36-c95d6ff3e113.pdf"
+      },
+      {
+        "date": "2026-02-26T16:48:10.46",
+        "title": "Analyst call intimation for the month of March scheduled on 13 March 2026.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/372dd61b-d3c8-439c-bd71-47204d31913a.pdf"
+      },
+      {
+        "date": "2026-02-26T16:45:48.74",
+        "title": "Analyst call intimation for the month of March scheduled on 12 March 2026.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/44fd99f8-d752-4a90-81e0-e7a9e5078631.pdf"
+      },
+      {
+        "date": "2026-02-26T10:48:11.48",
+        "title": "Reply to clarification on the news item",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/f0f8c207-bfce-401e-bebb-f458e8f7bd96.pdf"
+      },
+      {
+        "date": "2026-02-25T15:59:49.233",
+        "title": "The Exchange has sought clarification from Bajaj Auto Ltd on February 25, 2026, with reference to news appeared in https://www.business-standard.com dated February 25, 2026 quoting \"Bajaj Auto Partners with VDO.AI and Dentsu India to Drive High-Impact DCO-Led CTV Campaign for Triumph Motorcycles\" <BR><BR>The reply is awaited.",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/stock-share-price/bajaj-auto-ltd/bajaj-auto/532977/"
+      }
+    ],
     "corpActions": [],
     "boardMeetings": [],
-    "annualReports": [],
-    "results": []
+    "annualReports": [
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      },
+      {
+        "year": null,
+        "pdfUrl": null
+      }
+    ],
+    "results": [
+      {
+        "date": "2026-05-06T18:26:43.593",
+        "title": "Audited financial results for the year ended 31 March 2026",
+        "category": "Result",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/239a93a5-68fb-4de8-aaa4-5c79c681b54c.pdf"
+      }
+    ]
   }
 }
