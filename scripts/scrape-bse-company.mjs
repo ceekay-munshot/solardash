@@ -154,18 +154,9 @@ const BSE_ENDPOINTS = {
     derive: rows => rows.filter(r => /result/i.test(r.category || '') || /result/i.test(r.subCat || '')),
   },
 
-  /* GUESS — dedicated shareholding endpoint not in any known library.
-     If this 404s, capture the real URL from the BSE shareholding page's
-     browser Network tab and paste it here. */
-  shareholding: {
-    tag: 'guess',
-    url: `${API}/ScripHeaderData/w?Debtflag=&scripcode={scrip}&seriesid=`,
-    pick: j => (j.Table || []).map(r => ({
-      asOf:        r.QTR_END_DT || r.Period || r.QtrEnd || null,
-      promoterPct: r.Promoter || r.PROMOTER_PCT || r.PromoterHolding || null,
-      publicPct:   r.Public   || r.PUBLIC_PCT   || r.PublicHolding   || null,
-    })),
-  },
+  /* shareholding — deliberately omitted for now. The dedicated endpoint was
+     not identified; re-add a block here once the real URL is captured from
+     the BSE shareholding page's browser Network tab. */
 
   /* GUESS — dedicated annual-report endpoint not in any known library.
      Annual reports also surface in the announcements feed (category
