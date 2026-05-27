@@ -1,12 +1,12 @@
 {
-  "scrapedAt": "2026-05-27T05:14:02.989Z",
+  "scrapedAt": "2026-05-27T17:18:42.909Z",
   "scripCode": "541450",
   "slug": "adani-green",
   "sources": {
     "announcements": {
       "ok": true,
       "url": "https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w?pageno=1&strCat=-1&strPrevDate=20260226&strScrip=541450&strSearch=P&strToDate=20260527&strType=C",
-      "count": 31,
+      "count": 32,
       "tag": "confirmed",
       "error": null
     },
@@ -41,6 +41,13 @@
   },
   "data": {
     "announcements": [
+      {
+        "date": "2026-05-27T11:37:18.747",
+        "title": "Newspaper Advertisement for the 11th Annual General Meeting",
+        "category": "Company Update",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/50448cb7-63c2-496d-a0ad-f0d40cf5fce1.pdf"
+      },
       {
         "date": "2026-05-26T12:20:35.757",
         "title": "Intimation of interaction with Investors/ Analysts",
