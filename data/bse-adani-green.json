@@ -1,12 +1,12 @@
 {
-  "scrapedAt": "2026-05-29T05:12:58.160Z",
+  "scrapedAt": "2026-05-29T17:33:24.301Z",
   "scripCode": "541450",
   "slug": "adani-green",
   "sources": {
     "announcements": {
       "ok": true,
       "url": "https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w?pageno=1&strCat=-1&strPrevDate=20260228&strScrip=541450&strSearch=P&strToDate=20260529&strType=C",
-      "count": 32,
+      "count": 35,
       "tag": "confirmed",
       "error": null
     },
@@ -27,7 +27,7 @@
     "annualReports": {
       "ok": true,
       "url": "https://api.bseindia.com/BseIndiaAPI/api/AnnualReport/w?scripcode=541450",
-      "count": 8,
+      "count": 9,
       "tag": "guess",
       "error": null
     },
@@ -41,6 +41,27 @@
   },
   "data": {
     "announcements": [
+      {
+        "date": "2026-05-29T22:13:29.59",
+        "title": "Notice of 11th Annual General Meeting",
+        "category": "AGM/EGM",
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/3f4162c8-b18f-43e1-9f1a-7a226a79239b.pdf"
+      },
+      {
+        "date": "2026-05-29T22:06:04.92",
+        "title": "Business Responsibility and Sustainability Report for the Financial Year ended March 31, 2026",
+        "category": null,
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/a751cdc4-e077-461d-8d56-8200eb77a8b1.pdf"
+      },
+      {
+        "date": "2026-05-29T21:58:09.48",
+        "title": "Integrated Annual Report for FY 2025-26 and Notice of 11th AGM",
+        "category": null,
+        "subCat": null,
+        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/eaef9306-36d2-4437-9e41-f08d08b9d104.pdf"
+      },
       {
         "date": "2026-05-27T11:37:18.747",
         "title": "Newspaper Advertisement for the 11th Annual General Meeting",
@@ -269,6 +290,10 @@
     "corpActions": [],
     "boardMeetings": [],
     "annualReports": [
+      {
+        "year": null,
+        "pdfUrl": null
+      },
       {
         "year": null,
         "pdfUrl": null
