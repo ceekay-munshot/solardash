@@ -1,25 +1,25 @@
 {
-  "scrapedAt": "2026-05-29T17:33:24.301Z",
+  "scrapedAt": "2026-05-30T04:52:25.603Z",
   "scripCode": "541450",
   "slug": "adani-green",
   "sources": {
     "announcements": {
       "ok": true,
-      "url": "https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w?pageno=1&strCat=-1&strPrevDate=20260228&strScrip=541450&strSearch=P&strToDate=20260529&strType=C",
-      "count": 35,
+      "url": "https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w?pageno=1&strCat=-1&strPrevDate=20260301&strScrip=541450&strSearch=P&strToDate=20260530&strType=C",
+      "count": 34,
       "tag": "confirmed",
       "error": null
     },
     "corpActions": {
       "ok": true,
-      "url": "https://api.bseindia.com/BseIndiaAPI/api/DefaultData/w?Fdate=20260228&TDate=20260529&Purposecode=&ddlcategorys=E&ddlindustrys=&scripcode=541450&segment=0&strSearch=S",
+      "url": "https://api.bseindia.com/BseIndiaAPI/api/DefaultData/w?Fdate=20260301&TDate=20260530&Purposecode=&ddlcategorys=E&ddlindustrys=&scripcode=541450&segment=0&strSearch=S",
       "count": 0,
       "tag": "library",
       "error": null
     },
     "boardMeetings": {
       "ok": true,
-      "url": "https://api.bseindia.com/BseIndiaAPI/api/Corpforthresults/w?fromdate=20260228&todate=20260529&scripcode=541450",
+      "url": "https://api.bseindia.com/BseIndiaAPI/api/Corpforthresults/w?fromdate=20260301&todate=20260530&scripcode=541450",
       "count": 0,
       "tag": "library",
       "error": null
@@ -278,13 +278,6 @@
         "category": "Company Update",
         "subCat": null,
         "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/12cdbd8d-f828-46ce-bdc5-65928f767573.pdf"
-      },
-      {
-        "date": "2026-02-28T13:29:55.707",
-        "title": "Operationalization of Project",
-        "category": "Company Update",
-        "subCat": null,
-        "pdfUrl": "https://www.bseindia.com/xml-data/corpfiling/AttachLive/aaecb8e4-1e17-4c81-b2d9-5c3f0ea9258f.pdf"
       }
     ],
     "corpActions": [],
