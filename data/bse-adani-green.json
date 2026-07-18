@@ -1,25 +1,25 @@
 {
-  "scrapedAt": "2026-07-17T15:11:46.422Z",
+  "scrapedAt": "2026-07-18T03:53:45.693Z",
   "scripCode": "541450",
   "slug": "adani-green",
   "sources": {
     "announcements": {
       "ok": true,
-      "url": "https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w?pageno=1&strCat=-1&strPrevDate=20260418&strScrip=541450&strSearch=P&strToDate=20260717&strType=C",
+      "url": "https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w?pageno=1&strCat=-1&strPrevDate=20260419&strScrip=541450&strSearch=P&strToDate=20260718&strType=C",
       "count": 0,
       "tag": "confirmed",
       "error": null
     },
     "corpActions": {
       "ok": true,
-      "url": "https://api.bseindia.com/BseIndiaAPI/api/DefaultData/w?Fdate=20260418&TDate=20260717&Purposecode=&ddlcategorys=E&ddlindustrys=&scripcode=541450&segment=0&strSearch=S",
+      "url": "https://api.bseindia.com/BseIndiaAPI/api/DefaultData/w?Fdate=20260419&TDate=20260718&Purposecode=&ddlcategorys=E&ddlindustrys=&scripcode=541450&segment=0&strSearch=S",
       "count": 0,
       "tag": "library",
       "error": null
     },
     "boardMeetings": {
       "ok": true,
-      "url": "https://api.bseindia.com/BseIndiaAPI/api/Corpforthresults/w?fromdate=20260418&todate=20260717&scripcode=541450",
+      "url": "https://api.bseindia.com/BseIndiaAPI/api/Corpforthresults/w?fromdate=20260419&todate=20260718&scripcode=541450",
       "count": 0,
       "tag": "library",
       "error": null
