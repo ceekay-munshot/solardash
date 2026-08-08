@@ -1,5 +1,5 @@
 {
-  "scrapedAt": "2026-08-08T02:53:09.889Z",
+  "scrapedAt": "2026-08-08T14:30:16.726Z",
   "scripCode": "541450",
   "slug": "adani-green",
   "sources": {
@@ -11,11 +11,11 @@
       "error": null
     },
     "corpActions": {
-      "ok": false,
+      "ok": true,
       "url": "https://api.bseindia.com/BseIndiaAPI/api/DefaultData/w?Fdate=20260510&TDate=20260808&Purposecode=&ddlcategorys=E&ddlindustrys=&scripcode=541450&segment=0&strSearch=S",
       "count": 0,
       "tag": "library",
-      "error": "non-JSON response (\r\n\r\n<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitiona…)"
+      "error": null
     },
     "boardMeetings": {
       "ok": true,
